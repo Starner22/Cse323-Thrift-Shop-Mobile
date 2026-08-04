@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiService, Category, Product } from '../service/api_calls';
+import { useAuth } from '../context/AuthContext';
+
 
 const HomeScreen = ({ navigation }: any) => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -22,6 +24,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, isAuthenticated, logout } = useAuth();
 
   const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
 
@@ -141,13 +144,21 @@ const HomeScreen = ({ navigation }: any) => {
 
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="menu" size={28} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.storeTitle}>Thrift Store</Text>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="cart-outline" size={28} color="#333" />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+              <Ionicons name="menu" size={28} color="#333" />
+          </TouchableOpacity>
+          
+          <Text style={styles.storeTitle}>Thrift Store</Text>
+          
+          {isAuthenticated ? (
+              <TouchableOpacity style={styles.iconButton} onPress={logout}>
+                  <Ionicons name="log-out-outline" size={28} color="#333" />
+              </TouchableOpacity>
+          ) : (
+              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Login')}>
+                  <Ionicons name="person-outline" size={28} color="#333" />
+              </TouchableOpacity>
+          )}
       </View>
 
       <ScrollView
@@ -230,9 +241,13 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={[styles.bottomBarLabel, styles.activeLabel]}>Home</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}>
-          <Ionicons name="heart-outline" size={26} color="#666" />
-          <Text style={styles.bottomBarLabel}>Favorites</Text>
+        <TouchableOpacity 
+            style={styles.bottomBarItem} 
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('Wishlist')}
+        >
+            <Ionicons name="heart-outline" size={26} color="#666" />
+            <Text style={styles.bottomBarLabel}>Wishlist</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.sellButton} activeOpacity={0.7}>
@@ -247,9 +262,10 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={styles.bottomBarLabel}>Alerts</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}>
-          <Ionicons name="person-outline" size={26} color="#666" />
-          <Text style={styles.bottomBarLabel}>Account</Text>
+        <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}
+            onPress={() => navigation.navigate('Account')}>
+            <Ionicons name="person-outline" size={26} color="#666" />
+            <Text style={styles.bottomBarLabel}>Account</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

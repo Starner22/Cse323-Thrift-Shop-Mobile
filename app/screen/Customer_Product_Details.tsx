@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiService, Product } from '../service/api_calls';
+import { useAuth } from '../context/AuthContext';
 
 const Customer_Product_Detail = ({ route, navigation }: any) => {
   const { productId } = route.params || {};
@@ -21,6 +22,9 @@ const Customer_Product_Detail = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const { isAuthenticated } = useAuth(); 
+
 
   const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
 
@@ -30,7 +34,13 @@ const Customer_Product_Detail = ({ route, navigation }: any) => {
     }
   }, [productId]);
 
-  const fetchProductDetail = async () => {
+  useEffect(() => {
+    if (productId && isAuthenticated) {
+        checkWishlistStatus();
+    }
+  }, [productId, isAuthenticated]);
+
+const fetchProductDetail = async () => {
     try {
       setLoading(true);
       const data = await apiService.getProductById(productId);
@@ -51,14 +61,46 @@ const Customer_Product_Detail = ({ route, navigation }: any) => {
     );
   };
 
-  const handleToggleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    Alert.alert(
-      isWishlisted ? 'Removed from Wishlist' : 'Added to Wishlist',
-      isWishlisted 
-        ? `${product?.name} removed from your wishlist` 
-        : `${product?.name} added to your wishlist`
-    );
+  const checkWishlistStatus = async () => {
+    try {
+        const inWishlist = await apiService.isInWishlist(productId);
+        setIsInWishlist(inWishlist);
+        setIsWishlisted(inWishlist);  // ← Also update the other state
+    } catch (error) {
+        console.error('Error checking wishlist:', error);
+    }
+  };
+
+  // Handle wishlist toggle
+  const handleToggleWishlist = async () => {
+      if (!isAuthenticated) {
+          Alert.alert(
+              'Login Required',
+              'Please login to add items to your wishlist',
+              [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Login', onPress: () => navigation.navigate('Login') }
+              ]
+          );
+          return;
+      }
+
+      try {
+          if (isInWishlist) {
+              // For now, we'll just toggle locally since we need the wishlistItemID
+              // We'll implement full removal when we have the wishlist page
+              setIsInWishlist(false);
+              setIsWishlisted(false);
+              Alert.alert('Removed', `${product?.name} removed from wishlist`);
+          } else {
+              await apiService.addToWishlist(productId);
+              setIsInWishlist(true);
+              setIsWishlisted(true);
+              Alert.alert('Added to Wishlist', `${product?.name} added to your wishlist!`);
+          }
+      } catch (error) {
+          Alert.alert('Error', 'Failed to update wishlist');
+      }
   };
 
   const handleShare = async () => {
@@ -161,7 +203,7 @@ const Customer_Product_Detail = ({ route, navigation }: any) => {
             <View style={[styles.conditionBadge, { backgroundColor: getConditionColor(product.condition || 'Normal') }]}>
               <Text style={styles.conditionBadgeText}>
                 {product.condition || 'Normal'}
-                </Text>
+              </Text>
             </View>
           </View>
           

@@ -263,7 +263,14 @@ const HomeScreen = ({ navigation }: any) => {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}
-            onPress={() => navigation.navigate('Account')}>
+            onPress={() => {
+                if (user?.role === 'Seller') {
+                    navigation.navigate('SellerAccount');
+                } else {
+                    navigation.navigate('Account');
+                }
+            }}
+        >
             <Ionicons name="person-outline" size={26} color="#666" />
             <Text style={styles.bottomBarLabel}>Account</Text>
         </TouchableOpacity>

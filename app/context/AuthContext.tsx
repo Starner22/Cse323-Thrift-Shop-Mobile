@@ -11,6 +11,7 @@ interface AuthContextData {
     register: (name: string, email: string, password: string) => Promise<boolean>;
     logout: () => Promise<void>;
     checkAuthStatus: () => Promise<void>;
+    updateUser: (userData: any) => Promise<void>;  // ← ADD THIS
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -108,6 +109,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    const updateUser = async (userData: any): Promise<void> => {
+        try {
+            // Update local user state
+            setUser((prevUser: any) => ({
+                ...prevUser,
+                ...userData
+            }));
+            
+            // Update stored user data
+            const currentUser = await StorageService.getUser();
+            if (currentUser) {
+                const updatedUser = { ...currentUser, ...userData };
+                await StorageService.storeUser(updatedUser);
+            }
+            
+            console.log('User data updated locally');
+        } catch (error) {
+            console.error('Error updating user locally:', error);
+            throw error;
+        }
+    };
+
+
     return (
         <AuthContext.Provider
             value={{
@@ -118,6 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 register,
                 logout,
                 checkAuthStatus,
+                updateUser,  // ← ADD THIS
             }}
         >
             {children}

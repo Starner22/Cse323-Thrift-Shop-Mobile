@@ -319,6 +319,75 @@ class ApiService {
           return false;
       }
   }
+
+  // ========== SELLER METHODS ==========
+
+  async checkSellerStatus(): Promise<any> {
+      try {
+          const response = await this.request<any>('/seller_apply.php', {}, true);
+          return {
+              hasApplied: response.hasApplied || false,
+              status: response.status || null,
+              canEdit: response.canEdit || false,
+              profile: response.profile || null,
+              message: response.message || ''
+          };
+      } catch (error) {
+          console.error('Error checking seller status:', error);
+          return { hasApplied: false, status: null, canEdit: false };
+      }
+  }
+
+  async applySeller(data: any): Promise<any> {
+      try {
+          return await this.request<any>('/seller_apply.php', {
+              method: 'POST',
+              body: JSON.stringify(data),
+          }, true);
+      } catch (error) {
+          console.error('Error applying to become seller:', error);
+          throw error;
+      }
+  }
+
+  // ========== USER PROFILE METHODS ==========
+
+  async updateUserProfile(data: any): Promise<any> {
+      try {
+          return await this.request<any>('/user_edit_profile.php', {
+              method: 'PUT',
+              body: JSON.stringify(data),
+          }, true);
+      } catch (error) {
+          console.error('Error updating profile:', error);
+          throw error;
+      }
+  }
+  
+  async updateSellerProfile(data: any): Promise<any> {
+    try {
+        return await this.request<any>('/seller_edit_business.php', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }, true);
+    } catch (error) {
+        console.error('Error updating seller profile:', error);
+        throw error;
+    }
+}
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<any> {
+      try {
+          return await this.request<any>('/user_change_password.php', {
+              method: 'POST',
+              body: JSON.stringify({ currentPassword, newPassword }),
+          }, true);
+      } catch (error) {
+          console.error('Error changing password:', error);
+          throw error;
+      }
+  }
+
 }
 
 export const apiService = new ApiService();

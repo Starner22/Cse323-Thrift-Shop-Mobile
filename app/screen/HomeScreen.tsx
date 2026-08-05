@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   Image,
+  Alert,
   ActivityIndicator,
   RefreshControl,
   FlatList
@@ -24,8 +25,10 @@ const HomeScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [cartCount, setCartCount] = useState(0);
+  const [sellerStatus, setSellerStatus] = useState<string | null>(null);
+  const [checkingSeller, setCheckingSeller] = useState(false);
 
   const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
 
@@ -52,6 +55,67 @@ const HomeScreen = ({ navigation }: any) => {
     });
     return unsubscribe;
   }, [navigation]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+        checkSellerStatus();
+    }
+  }, [isAuthenticated]);
+
+  const checkSellerStatus = async () => {
+    try {
+        setCheckingSeller(true);
+        const response = await apiService.checkSellerStatus();
+        if (response.hasApplied) {
+            setSellerStatus(response.status);
+        } else {
+            setSellerStatus(null);
+        }
+    } catch (error) {
+        console.error('Error checking seller status:', error);
+    } finally {
+        setCheckingSeller(false);
+    }
+  };
+
+  const handleSellPress = () => {
+      // Case 1: User is not a Seller
+      if (user?.role !== 'Seller') {
+          navigation.navigate('BecomeSeller');
+          return;
+      }
+
+      // Case 2: User is a Seller but status is pending
+      if (sellerStatus === 'pending') {
+          Alert.alert(
+              'Application Pending',
+              'Your seller application is still under review.\n\n' +
+              'You will be able to sell products once approved.',
+              [{ text: 'OK' }]
+          );
+          return;
+      }
+
+      // Case 3: User is a Seller but status is rejected
+      if (sellerStatus === 'rejected') {
+          navigation.navigate('SellerClearanceIssue');
+          return;
+      }
+
+      // Case 4: User is an approved Seller
+      if (user?.role === 'Seller' && sellerStatus === 'approved') {
+          navigation.navigate('SellerSellProduct');
+          return;
+      }
+
+      // Fallback: Something went wrong
+      Alert.alert(
+          'Unable to Sell',
+          'There was an issue accessing the sell page. Please contact support.',
+          [{ text: 'OK' }]
+      );
+  };
+
 
 
   const fetchData = async () => {
@@ -278,11 +342,16 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.bottomBarLabel}>Wishlist</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.sellButton} activeOpacity={0.7}>
-          <View style={styles.sellButtonInner}>
-            <Ionicons name="add" size={32} color="#fff" />
-          </View>
-          <Text style={[styles.bottomBarLabel, styles.sellLabel]}>Sell</Text>
+        <TouchableOpacity 
+            style={styles.sellButton} 
+            activeOpacity={0.7}
+            onPress={handleSellPress}
+        >
+            <View style={styles.sellButtonInner}>
+                <Ionicons name="add" size={32} color="#fff" />
+            </View>
+
+            <Text style={[styles.bottomBarLabel, styles.sellLabel]}>Sell</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}>

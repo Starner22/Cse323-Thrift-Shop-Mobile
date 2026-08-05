@@ -469,6 +469,34 @@ class ApiService {
       }
   }
 
+  // ========== SELLER PRODUCT METHODS ==========
+
+  async createProduct(productData: any): Promise<any> {  
+    try {
+        // Make sure the image is included properly
+        const formData = {
+            name: productData.name,
+            description: productData.description,
+            categoryID: productData.categoryID,
+            condition: productData.condition,
+            price: productData.price,
+            quantity: productData.quantity,
+            image: productData.image  // Base64 image
+        };
+
+        const response = await this.request<any>('/sell_product.php', {
+            method: 'POST',
+            body: JSON.stringify(formData),
+        }, true);
+        
+        return response;
+    } catch (error) {
+        console.error('Error creating product:', error);
+        throw error;
+    }
+}
+
+
 }
 
 export const apiService = new ApiService();

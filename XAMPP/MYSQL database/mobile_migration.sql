@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 20, 2025 at 06:57 PM
+-- Generation Time: Aug 05, 2026 at 07:57 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -40,7 +40,8 @@ CREATE TABLE `cart` (
 INSERT INTO `cart` (`cartID`, `buyerID`, `created_at`) VALUES
 (1, 1, '2025-08-13 20:10:00'),
 (4, 5, '2025-08-13 22:20:49'),
-(5, 6, '2025-08-14 00:08:31');
+(5, 6, '2025-08-14 00:08:31'),
+(6, 7, '2026-07-27 12:46:04');
 
 -- --------------------------------------------------------
 
@@ -205,34 +206,66 @@ CREATE TABLE `product` (
   `sellerID` int(11) NOT NULL,
   `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `location` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `product`
 --
 
-INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`, `quantity`, `categoryID`, `image_path`, `sellerID`, `status`, `created_at`, `updated_at`) VALUES
-(46, 'Vintage Leather Jacket', 'A classic leather jacket in good condition.', 75.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(47, 'Acoustic Guitar', 'Well-maintained acoustic guitar, perfect for beginners.', 120.00, 'Excellent', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(48, 'Used Computer Monitor', 'A 24-inch monitor with minor signs of wear.', 80.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(49, 'Antique Wooden Chair', 'A sturdy wooden chair with a unique design.', 45.00, 'Subpar', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(50, 'Complete Series DVD Set', 'The complete series of a popular TV show.', 25.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(51, 'Exercise Bike', 'A well-functioning exercise bike for home workouts.', 150.00, 'Good', 11, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(52, 'Board Game Collection', 'A lot of assorted board games, some new, some used.', 30.00, 'Normal', 12, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(53, 'Cast Iron Skillet', 'A seasoned cast iron skillet, ready to use.', 20.00, 'Good', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(54, 'Car Floor Mats (Set)', 'A set of used but clean car floor mats.', 15.00, 'Normal', 12, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(55, 'Handheld Blender', 'A powerful handheld blender with all accessories.', 35.00, 'Excellent', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(56, 'Digital Camera', 'A compact digital camera with a memory card.', 90.00, 'Good', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(57, 'Silver Necklace', 'A delicate silver chain necklace.', 50.00, 'Excellent', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(58, 'Hardcover Book Set', 'A collection of classic literature in hardcover.', 40.00, 'Good', 4, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(59, 'Dog Carrier Crate', 'A small dog carrier, perfect for vet visits.', 25.00, 'Normal', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(60, 'Art Easel', 'A portable wooden art easel with some paint stains.', 30.00, 'Normal', 6, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(61, 'Wireless Mouse', 'A used wireless mouse with a USB receiver.', 10.00, 'Good', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(62, 'T-Shirt Lot', 'A bundle of assorted men\'s t-shirts.', 20.00, 'Good', 5, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(63, 'Desk Lamp', 'A modern desk lamp with an adjustable neck.', 18.00, 'Excellent', 5, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(64, 'Vintage Tea Set', 'A decorative tea set with floral patterns.', 60.00, 'Good', 5, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44'),
-(65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44');
+INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`, `quantity`, `categoryID`, `image_path`, `sellerID`, `status`, `created_at`, `updated_at`, `location`) VALUES
+(46, 'Vintage Leather Jacket', 'A classic leather jacket in good condition.', 75.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(47, 'Acoustic Guitar', 'Well-maintained acoustic guitar, perfect for beginners.', 120.00, 'Excellent', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(48, 'Used Computer Monitor', 'A 24-inch monitor with minor signs of wear.', 80.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(49, 'Antique Wooden Chair', 'A sturdy wooden chair with a unique design.', 45.00, 'Subpar', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(50, 'Complete Series DVD Set', 'The complete series of a popular TV show.', 25.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(51, 'Exercise Bike', 'A well-functioning exercise bike for home workouts.', 150.00, 'Good', 11, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(52, 'Board Game Collection', 'A lot of assorted board games, some new, some used.', 30.00, 'Normal', 12, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(53, 'Cast Iron Skillet', 'A seasoned cast iron skillet, ready to use.', 20.00, 'Good', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(54, 'Car Floor Mats (Set)', 'A set of used but clean car floor mats.', 15.00, 'Normal', 12, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(55, 'Handheld Blender', 'A powerful handheld blender with all accessories.', 35.00, 'Excellent', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(56, 'Digital Camera', 'A compact digital camera with a memory card.', 90.00, 'Good', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(57, 'Silver Necklace', 'A delicate silver chain necklace.', 50.00, 'Excellent', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(58, 'Hardcover Book Set', 'A collection of classic literature in hardcover.', 40.00, 'Good', 4, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(59, 'Dog Carrier Crate', 'A small dog carrier, perfect for vet visits.', 25.00, 'Normal', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(60, 'Art Easel', 'A portable wooden art easel with some paint stains.', 30.00, 'Normal', 6, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(61, 'Wireless Mouse', 'A used wireless mouse with a USB receiver.', 10.00, 'Good', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(62, 'T-Shirt Lot', 'A bundle of assorted men\'s t-shirts.', 20.00, 'Good', 5, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(63, 'Desk Lamp', 'A modern desk lamp with an adjustable neck.', 18.00, 'Excellent', 5, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(64, 'Vintage Tea Set', 'A decorative tea set with floral patterns.', 60.00, 'Good', 5, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `seller_profile`
+--
+
+CREATE TABLE `seller_profile` (
+  `sellerID` int(11) NOT NULL,
+  `userID` int(11) NOT NULL,
+  `business_name` varchar(255) NOT NULL,
+  `business_address` text DEFAULT NULL,
+  `business_phone` varchar(20) DEFAULT NULL,
+  `business_email` varchar(255) DEFAULT NULL,
+  `tax_id` varchar(100) DEFAULT NULL,
+  `bank_account` varchar(100) DEFAULT NULL,
+  `id_card_path` varchar(255) DEFAULT NULL,
+  `business_license_path` varchar(255) DEFAULT NULL,
+  `approval_status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `rejected_reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `seller_profile`
+--
+
+INSERT INTO `seller_profile` (`sellerID`, `userID`, `business_name`, `business_address`, `business_phone`, `business_email`, `tax_id`, `bank_account`, `id_card_path`, `business_license_path`, `approval_status`, `approved_at`, `rejected_reason`, `created_at`, `updated_at`) VALUES
+(1, 7, 'Lisetsd', 'Asdfghaf', '01714079347', 'a@a.com', '123456678', '12344567891', NULL, NULL, 'pending', NULL, NULL, '2026-08-05 01:36:40', '2026-08-05 05:45:04');
 
 -- --------------------------------------------------------
 
@@ -266,21 +299,25 @@ CREATE TABLE `user` (
   `userID` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `address` text DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('Admin','Moderator','Seller','Buyer') NOT NULL DEFAULT 'Buyer',
-  `registration_date` timestamp NOT NULL DEFAULT current_timestamp()
+  `registration_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `auth_token` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`userID`, `name`, `email`, `password`, `role`, `registration_date`) VALUES
-(1, 'Mahee', 'mahee@mahee.com', '$2y$10$hPpkGhku7bcaRTrRfba.Wun9j/71zTwW/9D6RVBTS3KyXgsiCUKOS', 'Buyer', '2025-08-13 20:10:00'),
-(3, 'admin', 'admin@shop.com', '$2y$10$tZJsb8sEUXU7jI7ygqLDh.FpcZtnIf1F.ADcz7fPQKkqV0mn7.auq', 'Admin', '2025-08-13 20:26:22'),
-(4, 'Seller', 'seller@shop.com', '$2y$10$JSj3rfVEPYM0QRp9mVFLmOZpWI6/WAggzAVKH100jdULjLcl5Ud.S', 'Seller', '2025-08-13 22:19:31'),
-(5, 'buyer', 'buyer@shop.com', '$2y$10$JZ5/V0QujlSKwBozZQrCmOjLljm2A4XW4C6u.AJPeDTk3oqjqaY1W', 'Buyer', '2025-08-13 22:20:49'),
-(6, 'Sohee', 'sohee@sohee.com', '$2y$10$/mYEo2oBym1rwXZ03AKOUe.Sp2l5XoinAzORb03EbVaL4luJ2wbxu', 'Buyer', '2025-08-14 00:08:31');
+INSERT INTO `user` (`userID`, `name`, `email`, `phone`, `address`, `password`, `role`, `registration_date`, `auth_token`) VALUES
+(1, 'Mahee', 'mahee@mahee.com', NULL, NULL, '$2y$10$hPpkGhku7bcaRTrRfba.Wun9j/71zTwW/9D6RVBTS3KyXgsiCUKOS', 'Buyer', '2025-08-13 20:10:00', NULL),
+(3, 'admin', 'admin@shop.com', NULL, NULL, '$2y$10$tZJsb8sEUXU7jI7ygqLDh.FpcZtnIf1F.ADcz7fPQKkqV0mn7.auq', 'Admin', '2025-08-13 20:26:22', NULL),
+(4, 'Seller', 'seller@shop.com', NULL, NULL, '$2y$10$JSj3rfVEPYM0QRp9mVFLmOZpWI6/WAggzAVKH100jdULjLcl5Ud.S', 'Seller', '2025-08-13 22:19:31', NULL),
+(5, 'buyer', 'buyer@shop.com', NULL, NULL, '$2y$10$JZ5/V0QujlSKwBozZQrCmOjLljm2A4XW4C6u.AJPeDTk3oqjqaY1W', 'Buyer', '2025-08-13 22:20:49', NULL),
+(6, 'Sohee', 'sohee@sohee.com', NULL, NULL, '$2y$10$/mYEo2oBym1rwXZ03AKOUe.Sp2l5XoinAzORb03EbVaL4luJ2wbxu', 'Buyer', '2025-08-14 00:08:31', NULL),
+(7, 'abc', 'a@a.com', '123', '', '$2y$10$JON.qMMPViApSMT3G2Dq0eJ5aZ04m.G43mZDVgjKRReCZ4elL6Exu', 'Seller', '2026-07-27 12:46:04', 'ed99dad332f4b7f385e18fe4f3937af3be02fdeff1baa7f2a6070a32052a7e64');
 
 -- --------------------------------------------------------
 
@@ -301,7 +338,8 @@ CREATE TABLE `wishlist` (
 INSERT INTO `wishlist` (`wishlistID`, `buyerID`, `created_at`) VALUES
 (1, 1, '2025-08-13 20:10:00'),
 (2, 5, '2025-08-13 22:20:49'),
-(3, 6, '2025-08-14 00:08:31');
+(3, 6, '2025-08-14 00:08:31'),
+(4, 7, '2026-07-27 12:46:04');
 
 -- --------------------------------------------------------
 
@@ -314,6 +352,13 @@ CREATE TABLE `wishlistitem` (
   `wishlistID` int(11) NOT NULL,
   `productID` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `wishlistitem`
+--
+
+INSERT INTO `wishlistitem` (`wishlistItemID`, `wishlistID`, `productID`) VALUES
+(4, 4, 49);
 
 --
 -- Indexes for dumped tables
@@ -379,6 +424,13 @@ ALTER TABLE `product`
   ADD KEY `categoryID` (`categoryID`);
 
 --
+-- Indexes for table `seller_profile`
+--
+ALTER TABLE `seller_profile`
+  ADD PRIMARY KEY (`sellerID`),
+  ADD UNIQUE KEY `userID` (`userID`);
+
+--
 -- Indexes for table `supportticket`
 --
 ALTER TABLE `supportticket`
@@ -415,7 +467,7 @@ ALTER TABLE `wishlistitem`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `cartID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `cartID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `cartitem`
@@ -460,6 +512,12 @@ ALTER TABLE `product`
   MODIFY `productID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
+-- AUTO_INCREMENT for table `seller_profile`
+--
+ALTER TABLE `seller_profile`
+  MODIFY `sellerID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `supportticket`
 --
 ALTER TABLE `supportticket`
@@ -469,19 +527,19 @@ ALTER TABLE `supportticket`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `userID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `userID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `wishlist`
 --
 ALTER TABLE `wishlist`
-  MODIFY `wishlistID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `wishlistID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `wishlistitem`
 --
 ALTER TABLE `wishlistitem`
-  MODIFY `wishlistItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `wishlistItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Constraints for dumped tables
@@ -525,6 +583,12 @@ ALTER TABLE `payments`
 ALTER TABLE `product`
   ADD CONSTRAINT `product_ibfk_1` FOREIGN KEY (`sellerID`) REFERENCES `user` (`userID`) ON DELETE CASCADE,
   ADD CONSTRAINT `product_ibfk_2` FOREIGN KEY (`categoryID`) REFERENCES `categories` (`categoryID`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `seller_profile`
+--
+ALTER TABLE `seller_profile`
+  ADD CONSTRAINT `seller_profile_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `user` (`userID`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `supportticket`

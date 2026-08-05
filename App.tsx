@@ -1,47 +1,85 @@
 import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack'; // Use this
-// OR if you prefer regular stack:
-// import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { AuthProvider, useAuth } from './app/context/AuthContext';
 
 import HomeScreen from './app/screen/HomeScreen';
 import Customer_Browse_All from './app/screen/Customer_Browse_All';
 import Customer_Browse_Categorized from './app/screen/Customer_Browse_Categorized';
 import Customer_Show_Category from './app/screen/Customer_Show_Category';
 import Customer_Product_Detail from './app/screen/Customer_Product_Details';
+import LoginScreen from './app/screen/Login_Screen';
+import RegisterScreen from './app/screen/Register_Screen';
 
-// Placeholder screens
-const FavoritesScreen = () => null;
+import BuyerAccountScreen from './app/screen/Buyer_Account_Screen';
+import Seller_Account_Screen from './app/screen/Seller_Account_Screen';
+import User_Edit_Profile from './app/screen/User_Account_Edit_Profile';
+import Seller_Edit_Business from './app/screen/Seller_Edit_Business';
+import WishlistScreen from './app/screen/Wishlist_Screen';
+import BecomeSellerScreen from './app/screen/Become_Seller_Screen';
+import User_Password_Edit from './app/screen/User_Password_Edit';
+
+import Cart_Screen from './app/screen/Cart_Screen';
+
+
 const SellScreen = () => null;
 const AlertsScreen = () => null;
-const AccountScreen = () => null;
 
-const Stack = createNativeStackNavigator(); // Or createStackNavigator()
+const Stack = createNativeStackNavigator();
+
+// Main App Navigator with Auth
+function AppNavigator() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    // Splash Screen placeholder
+    return null;
+  }
+
+  return (
+    <Stack.Navigator
+      initialRouteName={isAuthenticated ? "Home" : "Login"}
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+      }}
+    >
+      {/* Auth Screens */}
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+
+      {/* Main App Screens */}
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="BrowseAll" component={Customer_Browse_All} />
+      <Stack.Screen name="BrowseCategorized" component={Customer_Browse_Categorized} />
+      <Stack.Screen name="ShowCategories" component={Customer_Show_Category} />
+      <Stack.Screen name="ProductDetail" component={Customer_Product_Detail} />
+      <Stack.Screen name="Wishlist" component={WishlistScreen} />
+      <Stack.Screen name="Sell" component={SellScreen} />
+      <Stack.Screen name="Alerts" component={AlertsScreen} />
+      <Stack.Screen name="Account" component={BuyerAccountScreen} />
+      <Stack.Screen name="SellerAccount" component={Seller_Account_Screen} />
+      <Stack.Screen name="User_Edit_Profile" component={User_Edit_Profile} />
+      <Stack.Screen name="Seller_Edit_Business" component={Seller_Edit_Business} />
+      <Stack.Screen name="BecomeSeller" component={BecomeSellerScreen} />
+      <Stack.Screen name="UserPasswordEdit" component={User_Password_Edit} />
+
+      <Stack.Screen name="Cart" component={Cart_Screen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="Home"
-          screenOptions={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        >
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="BrowseAll" component={Customer_Browse_All} />
-          <Stack.Screen name="BrowseCategorized" component={Customer_Browse_Categorized} />
-          <Stack.Screen name="ShowCategories" component={Customer_Show_Category} />
-          <Stack.Screen name="ProductDetail" component={Customer_Product_Detail} />
-          <Stack.Screen name="Favorites" component={FavoritesScreen} />
-          <Stack.Screen name="Sell" component={SellScreen} />
-          <Stack.Screen name="Alerts" component={AlertsScreen} />
-          <Stack.Screen name="Account" component={AccountScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <AuthProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

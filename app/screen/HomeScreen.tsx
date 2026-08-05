@@ -25,12 +25,34 @@ const HomeScreen = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, isAuthenticated, logout } = useAuth();
+  const [cartCount, setCartCount] = useState(0);
 
   const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchCartCount();
+  }, []);
+
+  const fetchCartCount = async () => {
+    try {
+        const count = await apiService.getCartCount();
+        setCartCount(count);
+    } catch (error) {
+        console.error('Error fetching cart count:', error);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+        fetchCartCount();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
 
   const fetchData = async () => {
     try {
@@ -150,15 +172,21 @@ const HomeScreen = ({ navigation }: any) => {
           
           <Text style={styles.storeTitle}>Thrift Store</Text>
           
-          {isAuthenticated ? (
-              <TouchableOpacity style={styles.iconButton} onPress={logout}>
-                  <Ionicons name="log-out-outline" size={28} color="#333" />
+          <View style={styles.rightIcons}>
+              <TouchableOpacity 
+                    style={styles.iconButton} 
+                    onPress={() => {navigation.navigate('Cart');}}
+                >
+                  <Ionicons name="cart-outline" size={28} color="#333" />
+                  {cartCount > 0 && (
+                      <View style={styles.cartBadge}>
+                          <Text style={styles.cartBadgeText}>
+                              {cartCount > 99 ? '99+' : cartCount}
+                          </Text>
+                      </View>
+                  )}
               </TouchableOpacity>
-          ) : (
-              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Login')}>
-                  <Ionicons name="person-outline" size={28} color="#333" />
-              </TouchableOpacity>
-          )}
+          </View>
       </View>
 
       <ScrollView
@@ -492,6 +520,27 @@ const styles = StyleSheet.create({
   sellLabel: {
     color: '#4CAF50',
     fontWeight: '600',
+  },
+  rightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cartBadge: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      backgroundColor: '#FF6B6B',
+      borderRadius: 10,
+      minWidth: 20,
+      height: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: 'bold',
   },
 });
 

@@ -388,6 +388,87 @@ class ApiService {
       }
   }
 
+  // ========== CART METHODS ==========
+
+  async getCart(): Promise<any> {
+      try {
+          return await this.request<any>('/cart.php', {}, true);
+      } catch (error) {
+          console.error('Error fetching cart:', error);
+          return { items: [], totalItems: 0, totalPrice: 0 };
+      }
+  }
+
+  async addToCart(productID: number, quantity: number = 1): Promise<any> {
+      try {
+          return await this.request<any>('/cart.php', {
+              method: 'POST',
+              body: JSON.stringify({ productID, quantity }),
+          }, true);
+      } catch (error) {
+          console.error('Error adding to cart:', error);
+          throw error;
+      }
+  }
+
+
+  async updateCartItem(cartItemID: number, quantity: number): Promise<any> {
+      try {
+          return await this.request<any>('/cart.php', {
+              method: 'PUT',
+              body: JSON.stringify({ cartItemID, quantity }),
+          }, true);
+      } catch (error) {
+          console.error('Error updating cart:', error);
+          throw error;
+      }
+  }
+
+
+  async removeFromCart(cartItemID: number): Promise<any> {
+      try {
+          return await this.request<any>('/cart.php', {
+              method: 'DELETE',
+              body: JSON.stringify({ cartItemID }),
+          }, true);
+      } catch (error) {
+          console.error('Error removing from cart:', error);
+          throw error;
+      }
+  }
+
+
+  async clearCart(): Promise<any> {
+      try {
+          // Get all items first
+          const cart = await this.getCart();
+          if (!cart.items || cart.items.length === 0) {
+              return { success: true, message: 'Cart is already empty' };
+          }
+          
+          // Remove each item
+          for (const item of cart.items) {
+              await this.removeFromCart(item.cartItemID);
+          }
+          
+          return { success: true, message: 'Cart cleared' };
+      } catch (error) {
+          console.error('Error clearing cart:', error);
+          throw error;
+      }
+  }
+
+
+  async getCartCount(): Promise<number> {
+      try {
+          const cart = await this.getCart();
+          return cart.totalItems || 0;
+      } catch (error) {
+          console.error('Error getting cart count:', error);
+          return 0;
+      }
+  }
+
 }
 
 export const apiService = new ApiService();

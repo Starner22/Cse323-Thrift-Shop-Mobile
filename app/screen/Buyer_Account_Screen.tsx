@@ -55,7 +55,7 @@ const BuyerAccountScreen = ({ navigation }: any) => {
     };
 
     const handleCart = () => {
-        Alert.alert('My Cart', 'Cart page coming soon!');
+        navigation.navigate('Cart');
     };
 
     // Get user initials for avatar

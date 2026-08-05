@@ -53,13 +53,39 @@ const fetchProductDetail = async () => {
     }
   };
 
-  const handleAddToCart = () => {
-    Alert.alert(
-      'Added to Cart',
-      `${product?.name} has been added to your cart!`,
-      [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
-    );
+  const handleAddToCart = async () => {
+      if (!isAuthenticated) {
+          Alert.alert(
+              'Login Required',
+              'Please login to add items to your cart',
+              [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Login', onPress: () => navigation.navigate('Login') }
+              ]
+          );
+          return;
+      }
+
+      try {
+          const response = await apiService.addToCart(productId, quantity);
+          if (response.success) {
+              Alert.alert(
+                  'Added to Cart',
+                  `${product?.name} has been added to your cart!`,
+                  [
+                      { 
+                          text: 'View Cart', 
+                          onPress: () => navigation.navigate('Cart')
+                      },
+                      { text: 'Continue Shopping', style: 'cancel' }
+                  ]
+              );
+          }
+      } catch (error: any) {
+          Alert.alert('Error', error.message || 'Failed to add to cart');
+      }
   };
+
 
   const checkWishlistStatus = async () => {
     try {

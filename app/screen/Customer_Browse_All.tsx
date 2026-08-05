@@ -30,7 +30,9 @@ const Customer_Browse_All = ({ route, navigation }: any) => {
   const [sortOption, setSortOption] = useState<SortOption>('name_asc');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  
+  const [cartCount, setCartCount] = useState(0);
+
+  const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     conditions: [],
@@ -39,8 +41,6 @@ const Customer_Browse_All = ({ route, navigation }: any) => {
   });
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
 
-  const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
-
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -48,6 +48,26 @@ const Customer_Browse_All = ({ route, navigation }: any) => {
   useEffect(() => {
     filterAndSortProducts();
   }, [searchQuery, sortOption, products, filters]);
+
+  useEffect(() => {
+    fetchCartCount();
+  }, []);
+
+    const fetchCartCount = async () => {
+      try {
+          const count = await apiService.getCartCount();
+          setCartCount(count);
+      } catch (error) {
+          console.error('Error fetching cart count:', error);
+      }
+    };
+
+    useEffect(() => {
+      const unsubscribe = navigation.addListener('focus', () => {
+          fetchCartCount();
+      });
+      return unsubscribe;
+    }, [navigation]);
 
   const fetchProducts = async () => {
     try {
@@ -183,10 +203,24 @@ const Customer_Browse_All = ({ route, navigation }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
           <Ionicons name="arrow-back" size={28} color="#333" />
         </TouchableOpacity>
+
         <Text style={styles.storeTitle}>All Products</Text>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="cart-outline" size={28} color="#333" />
-        </TouchableOpacity>
+        
+        <View style={styles.rightIcons}>
+            <TouchableOpacity 
+                  style={styles.iconButton} 
+                  onPress={() => {navigation.navigate('Cart');}}
+              >
+                <Ionicons name="cart-outline" size={28} color="#333" />
+                {cartCount > 0 && (
+                    <View style={styles.cartBadge}>
+                        <Text style={styles.cartBadgeText}>
+                            {cartCount > 99 ? '99+' : cartCount}
+                        </Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -534,6 +568,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+  },
+
+    rightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cartBadge: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      backgroundColor: '#FF6B6B',
+      borderRadius: 10,
+      minWidth: 20,
+      height: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: 'bold',
   },
 });
 

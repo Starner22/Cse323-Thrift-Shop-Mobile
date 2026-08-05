@@ -7,59 +7,53 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    Image,
-    Alert,
-    RefreshControl
+    RefreshControl,
+    Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../service/api_calls';
 
-const Seller_Account_Screen = ({ navigation }: any) => {
+interface ModStats {
+    pendingProducts: number;
+    totalProducts: number;
+    rejectedProducts: number;
+    pendingSellers: number;
+    totalSellers: number;
+}
+
+const Moderator_Account_Screen = ({ navigation }: any) => {
     const { user, isAuthenticated, logout } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [sellerProfile, setSellerProfile] = useState<any>(null);
-    const [stats, setStats] = useState({
+    const [stats, setStats] = useState<ModStats>({
+        pendingProducts: 0,
         totalProducts: 0,
-        totalOrders: 0,
-        totalSales: 0,
-        totalReviews: 0,
-        pendingOrders: 0
+        rejectedProducts: 0,
+        pendingSellers: 0,
+        totalSellers: 0
     });
 
     useEffect(() => {
-        if (isAuthenticated && user?.role === 'Seller') {
-            fetchSellerData();
+        if (isAuthenticated) {
+            fetchModStats();
         }
     }, [isAuthenticated]);
 
-    const fetchSellerData = async () => {
-        const productsData = await apiService.getMyProducts();
-        setStats(prev => ({
-            ...prev,
-            totalProducts: productsData.length,
-            pendingOrders: productsData.filter(p => p.status === 'pending').length
-        }));
+    const fetchModStats = async () => {
         try {
             setLoading(true);
-            // Fetch seller profile
-            const profile = await apiService.checkSellerStatus();
-            if (profile.hasApplied && profile.status === 'approved') {
-                setSellerProfile(profile.profile);
-            }
-
-            // Fetch seller stats (you'll need to implement these endpoints)
+            // You'll implement these API calls later
             // For now, using placeholder data
             setStats({
-                totalProducts: 12,
-                totalOrders: 45,
-                totalSales: 7890,
-                totalReviews: 23,
-                pendingOrders: 3
+                pendingProducts: 5,
+                totalProducts: 120,
+                rejectedProducts: 8,
+                pendingSellers: 3,
+                totalSellers: 15
             });
         } catch (error) {
-            console.error('Error fetching seller data:', error);
+            console.error('Error fetching moderator stats:', error);
         } finally {
             setLoading(false);
         }
@@ -67,7 +61,7 @@ const Seller_Account_Screen = ({ navigation }: any) => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchSellerData();
+        await fetchModStats();
         setRefreshing(false);
     };
 
@@ -89,38 +83,28 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         );
     };
 
-    const handleEditBusiness = () => {
-        navigation.navigate('Seller_Edit_Business');
+    const handlePendingProducts = () => {
+        navigation.navigate('ModeratePendingProducts');
     };
 
-    const handleEditProfile = () => {
-        navigation.navigate('User_Edit_Profile'); 
+    const handleAllProducts = () => {
+        Alert.alert('All Products', 'Product management coming soon!');
     };
 
-
-    const handleChangePassword = () => {
-        navigation.navigate('UserPasswordEdit');
-    };
-    
-
-    const handleMyOrders = () => {
-        Alert.alert('My Orders', 'Orders page coming soon!');
+    const handlePendingSellers = () => {
+        Alert.alert('Pending Sellers', 'Seller approval coming soon!');
     };
 
-    const handleMyWishlist = () => {
-        navigation.navigate('Wishlist');
+    const handleModerationHistory = () => {
+        Alert.alert('Moderation History', 'History coming soon!');
     };
 
-    const handleMyProducts = () => {
-        navigation.navigate('SellerMyProducts');
+    const handleReports = () => {
+        Alert.alert('Reports', 'Reports coming soon!');
     };
 
-    const handleSalesAnalytics = () => {
-        Alert.alert('Sales Analytics', 'Analytics dashboard coming soon!');
-    };
-
-    const handleStoreSettings = () => {
-        Alert.alert('Store Settings', 'Store settings coming soon!');
+    const handleSettings = () => {
+        navigation.navigate('User_Edit_Profile');
     };
 
     // Get user initials for avatar
@@ -133,28 +117,43 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         return user.name.substring(0, 2).toUpperCase();
     };
 
-    
-
-    // Format currency
-    const formatCurrency = (amount: number) => {
-        return `$${amount.toFixed(2)}`;
-    };
-
     if (!isAuthenticated) {
         return (
             <SafeAreaView style={styles.container}>
                 <StatusBar barStyle="dark-content" backgroundColor="#fff" />
                 <View style={styles.notLoggedInContainer}>
-                    <Ionicons name="storefront-outline" size={80} color="#ccc" />
+                    <Ionicons name="shield-outline" size={80} color="#ccc" />
                     <Text style={styles.notLoggedInText}>Not Logged In</Text>
                     <Text style={styles.notLoggedInSubtext}>
-                        Please login to view your seller account
+                        Please login to view your moderator dashboard
                     </Text>
                     <TouchableOpacity
                         style={styles.loginButton}
                         onPress={() => navigation.navigate('Login')}
                     >
                         <Text style={styles.loginButtonText}>Go to Login</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    // Check if user is moderator or admin
+    if (user?.role !== 'Moderator' && user?.role !== 'Admin') {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+                <View style={styles.notLoggedInContainer}>
+                    <Ionicons name="lock-closed-outline" size={80} color="#ccc" />
+                    <Text style={styles.notLoggedInText}>Access Denied</Text>
+                    <Text style={styles.notLoggedInSubtext}>
+                        You don't have permission to view this page.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.loginButton}
+                        onPress={() => navigation.navigate('Home')}
+                    >
+                        <Text style={styles.loginButtonText}>Go to Home</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -170,8 +169,8 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.storeTitle}>Seller Dashboard</Text>
-                <TouchableOpacity style={styles.iconButton} onPress={handleEditProfile}>
+                <Text style={styles.storeTitle}>Moderator Panel</Text>
+                <TouchableOpacity style={styles.iconButton} onPress={handleSettings}>
                     <Ionicons name="settings-outline" size={28} color="#333" />
                 </TouchableOpacity>
             </View>
@@ -183,104 +182,143 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                 {/* Profile Header */}
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
-                        <View style={[styles.avatar, { backgroundColor: '#4CAF50' }]}>
+                        <View style={[styles.avatar, { backgroundColor: '#6C5CE7' }]}>
                             <Text style={styles.avatarText}>{getUserInitials()}</Text>
                         </View>
                         <View style={styles.roleBadge}>
-                            <Ionicons name="storefront-outline" size={14} color="#fff" />
-                            <Text style={styles.roleBadgeText}>Seller ⭐</Text>
+                            <Ionicons name="shield-checkmark" size={14} color="#fff" />
+                            <Text style={styles.roleBadgeText}>{user?.role || 'Moderator'}</Text>
                         </View>
                     </View>
-                    <Text style={styles.userName}>{user?.name || 'User'}</Text>
+                    <Text style={styles.userName}>{user?.name || 'Moderator'}</Text>
                     <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
-                    {sellerProfile && (
-                        <>
-                            <View style={styles.storeInfoContainer}>
-                                <Ionicons name="business-outline" size={16} color="#4CAF50" />
-                                <Text style={styles.storeName}>{sellerProfile.business_name}</Text>
-                            </View>
-                            {sellerProfile.business_address && (
-                                <View style={styles.storeInfoContainer}>
-                                    <Ionicons name="location-outline" size={14} color="#888" />
-                                    <Text style={styles.storeAddress} numberOfLines={1}>
-                                        {sellerProfile.business_address}
-                                    </Text>
-                                </View>
-                            )}
-                        </>
-                    )}
-                    <View style={styles.sellerSince}>
-                        <Text style={styles.sellerSinceText}>
-                            Seller since {user?.registration_date ? new Date(user.registration_date).toLocaleDateString() : 'N/A'}
-                        </Text>
-                    </View>
+                    <Text style={styles.userSince}>
+                        Member since {user?.registration_date ? new Date(user.registration_date).toLocaleDateString() : 'N/A'}
+                    </Text>
                 </View>
 
                 {/* Stats Cards */}
-                <View style={styles.statsContainer}>
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#e8f5e9' }]}>
-                            <Ionicons name="cube-outline" size={22} color="#4CAF50" />
+                <View style={styles.statsGrid}>
+                    <TouchableOpacity style={styles.statCard} onPress={handlePendingProducts}>
+                        <View style={[styles.statIcon, { backgroundColor: '#fff3e0' }]}>
+                            <Ionicons name="time-outline" size={24} color="#FF9F43" />
+                        </View>
+                        <Text style={styles.statNumber}>{stats.pendingProducts}</Text>
+                        <Text style={styles.statLabel}>Pending Products</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.statCard} onPress={handleAllProducts}>
+                        <View style={[styles.statIcon, { backgroundColor: '#e8f5e9' }]}>
+                            <Ionicons name="cube-outline" size={24} color="#4CAF50" />
                         </View>
                         <Text style={styles.statNumber}>{stats.totalProducts}</Text>
-                        <Text style={styles.statLabel}>Products</Text>
-                    </View>
+                        <Text style={styles.statLabel}>Total Products</Text>
+                    </TouchableOpacity>
 
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#e3f2fd' }]}>
-                            <Ionicons name="receipt-outline" size={22} color="#2196F3" />
+                    <TouchableOpacity style={styles.statCard} onPress={handleModerationHistory}>
+                        <View style={[styles.statIcon, { backgroundColor: '#fce4ec' }]}>
+                            <Ionicons name="close-circle" size={24} color="#FF6B6B" />
                         </View>
-                        <Text style={styles.statNumber}>{stats.totalOrders}</Text>
-                        <Text style={styles.statLabel}>Orders</Text>
-                    </View>
+                        <Text style={styles.statNumber}>{stats.rejectedProducts}</Text>
+                        <Text style={styles.statLabel}>Rejected</Text>
+                    </TouchableOpacity>
+                </View>
 
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#fff3e0' }]}>
-                            <Ionicons name="cash-outline" size={22} color="#FF9800" />
-                        </View>
-                        <Text style={styles.statNumber}>{formatCurrency(stats.totalSales)}</Text>
-                        <Text style={styles.statLabel}>Sales</Text>
+                {/* Seller Stats */}
+                <View style={styles.sellerStats}>
+                    <Text style={styles.sellerStatsTitle}>Seller Management</Text>
+                    <View style={styles.sellerStatsRow}>
+                        <TouchableOpacity style={styles.sellerStatItem} onPress={handlePendingSellers}>
+                            <View style={[styles.sellerStatIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="people-outline" size={22} color="#2196F3" />
+                            </View>
+                            <View>
+                                <Text style={styles.sellerStatNumber}>{stats.pendingSellers}</Text>
+                                <Text style={styles.sellerStatLabel}>Pending Sellers</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.sellerStatItem} onPress={handleAllProducts}>
+                            <View style={[styles.sellerStatIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="storefront" size={22} color="#4CAF50" />
+                            </View>
+                            <View>
+                                <Text style={styles.sellerStatNumber}>{stats.totalSellers}</Text>
+                                <Text style={styles.sellerStatLabel}>Total Sellers</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
 
-                {/* Quick Stats Row */}
-                <View style={styles.quickStatsContainer}>
-                    <View style={styles.quickStatItem}>
-                        <Text style={styles.quickStatNumber}>{stats.pendingOrders}</Text>
-                        <Text style={styles.quickStatLabel}>Pending Orders</Text>
-                    </View>
-                    <View style={styles.quickStatDivider} />
-                    <View style={styles.quickStatItem}>
-                        <Text style={styles.quickStatNumber}>{stats.totalReviews}</Text>
-                        <Text style={styles.quickStatLabel}>Reviews</Text>
-                    </View>
-                    <View style={styles.quickStatDivider} />
-                    <View style={styles.quickStatItem}>
-                        <Text style={styles.quickStatNumber}>
-                            {stats.totalProducts > 0 ? Math.round((stats.totalOrders / stats.totalProducts) * 10) / 10 : 0}
-                        </Text>
-                        <Text style={styles.quickStatLabel}>Avg Sales/Product</Text>
-                    </View>
-                </View>
-
-                {/* Seller Menu */}
+                {/* Menu */}
                 <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Account Features</Text>
-                    <TouchableOpacity style={styles.menuItem} onPress={handleMyProducts}>
+                    <Text style={styles.menuTitle}>Moderation Tools</Text>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handlePendingProducts}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="time-outline" size={22} color="#FF9F43" />
+                            </View>
+                            <Text style={styles.menuText}>Pending Products</Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {stats.pendingProducts > 0 && (
+                                <Text style={styles.menuBadge}>{stats.pendingProducts}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleAllProducts}>
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
                                 <Ionicons name="cube-outline" size={22} color="#4CAF50" />
                             </View>
-                            <Text style={styles.menuText}>My Products</Text>
+                            <Text style={styles.menuText}>All Products</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handlePendingSellers}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="people-outline" size={22} color="#2196F3" />
+                            </View>
+                            <Text style={styles.menuText}>Pending Sellers</Text>
                         </View>
                         <View style={styles.menuRight}>
-                            <Text style={styles.menuBadge}>{stats.totalProducts}</Text>
+                            {stats.pendingSellers > 0 && (
+                                <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{stats.pendingSellers}</Text>
+                            )}
                             <Ionicons name="chevron-forward" size={20} color="#ccc" />
                         </View>
                     </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleModerationHistory}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
+                                <Ionicons name="list-outline" size={22} color="#FF6B6B" />
+                            </View>
+                            <Text style={styles.menuText}>Moderation History</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleReports}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
+                                <Ionicons name="bar-chart-outline" size={22} color="#9C27B0" />
+                            </View>
+                            <Text style={styles.menuText}>Reports</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Account Settings */}
+                <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Account Settings</Text>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
                                 <Ionicons name="person-outline" size={22} color="#4CAF50" />
@@ -290,17 +328,7 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={handleEditBusiness}>
-                        <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
-                                <Ionicons name="storefront-outline" size={22} color="#2196F3" />
-                            </View>
-                            <Text style={styles.menuText}>Edit Business Profile</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem} onPress={handleChangePassword}>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('UserPasswordEdit')}>
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
                                 <Ionicons name="lock-closed-outline" size={22} color="#FF9800" />
@@ -345,6 +373,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
+        flex: 1,
+        textAlign: 'center',
     },
     // Not logged in
     notLoggedInContainer: {
@@ -407,7 +437,7 @@ const styles = StyleSheet.create({
         right: 0,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#4CAF50',
+        backgroundColor: '#6C5CE7',
         borderRadius: 12,
         paddingHorizontal: 8,
         paddingVertical: 3,
@@ -428,36 +458,13 @@ const styles = StyleSheet.create({
         color: '#666',
         marginTop: 2,
     },
-    storeInfoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    userSince: {
+        fontSize: 12,
+        color: '#999',
         marginTop: 4,
     },
-    storeName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#4CAF50',
-        marginLeft: 6,
-    },
-    storeAddress: {
-        fontSize: 13,
-        color: '#888',
-        marginLeft: 6,
-        maxWidth: '80%',
-    },
-    sellerSince: {
-        marginTop: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 12,
-    },
-    sellerSinceText: {
-        fontSize: 11,
-        color: '#888',
-    },
     // Stats
-    statsContainer: {
+    statsGrid: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         paddingVertical: 16,
@@ -470,7 +477,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
     },
-    statIconContainer: {
+    statIcon: {
         width: 44,
         height: 44,
         borderRadius: 22,
@@ -484,36 +491,50 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     statLabel: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#999',
+        textAlign: 'center',
     },
-    // Quick Stats
-    quickStatsContainer: {
-        flexDirection: 'row',
+    // Seller Stats
+    sellerStats: {
         backgroundColor: '#fff',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
+        padding: 16,
         marginTop: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
-    quickStatItem: {
-        flex: 1,
-        alignItems: 'center',
+    sellerStatsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
     },
-    quickStatNumber: {
+    sellerStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
+    sellerStatItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        paddingVertical: 8,
+    },
+    sellerStatIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    sellerStatNumber: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
     },
-    quickStatLabel: {
-        fontSize: 11,
+    sellerStatLabel: {
+        fontSize: 12,
         color: '#999',
-        marginTop: 2,
-    },
-    quickStatDivider: {
-        width: 1,
-        backgroundColor: '#e0e0e0',
     },
     // Menu
     menuContainer: {
@@ -557,12 +578,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     menuBadge: {
-        backgroundColor: '#4CAF50',
+        backgroundColor: '#FF9F43',
         borderRadius: 10,
         paddingHorizontal: 8,
         paddingVertical: 2,
         color: '#fff',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
         marginRight: 8,
         minWidth: 20,
@@ -571,7 +592,6 @@ const styles = StyleSheet.create({
     menuBadgeWarning: {
         backgroundColor: '#FF6B6B',
     },
-    // Logout
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -591,4 +611,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Seller_Account_Screen;
+export default Moderator_Account_Screen;

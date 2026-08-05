@@ -25,6 +25,10 @@ import User_Password_Edit from './app/screen/User_Password_Edit';
 import Cart_Screen from './app/screen/Cart_Screen';
 import Seller_Sell_Product from './app/screen/Seller_Sell_Product';
 import Seller_Clearance_Issue from './app/screen/Seller_Clearance_Issue';
+import Seller_My_Products from './app/screen/Seller_My_Products';
+import Seller_Edit_Product from './app/screen/Seller_Edit_Product';
+import Moderator_Account_Screen from './app/screen/Moderator_Account_Screen';
+import Moderate_Pending_Products from './app/screen/Moderate_Pending_Products';
 
 
 const SellScreen = () => null;
@@ -70,7 +74,11 @@ function AppNavigator() {
       <Stack.Screen name="UserPasswordEdit" component={User_Password_Edit} />
       <Stack.Screen name="SellerSellProduct" component={Seller_Sell_Product} />
       <Stack.Screen name="Cart" component={Cart_Screen} />
+      <Stack.Screen name="SellerMyProducts" component={Seller_My_Products} />
+      <Stack.Screen name="SellerEditProduct" component={Seller_Edit_Product} />
       <Stack.Screen name="SellerClearanceIssue" component={Seller_Clearance_Issue} />
+      <Stack.Screen name="ModeratorAccount" component={Moderator_Account_Screen} />
+      <Stack.Screen name="ModeratePendingProducts" component={Moderate_Pending_Products} />
     </Stack.Navigator>
   );
 }

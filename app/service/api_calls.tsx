@@ -494,8 +494,82 @@ class ApiService {
         console.error('Error creating product:', error);
         throw error;
     }
-}
+  }   
 
+  async getMyProducts(status?: string): Promise<any[]> {
+      try {
+          let endpoint = '/seller_products.php';
+          if (status) {
+              endpoint += `?status=${status}`;
+          }
+          const result = await this.request<any[]>(endpoint, {}, true);
+          return Array.isArray(result) ? result : [];
+      } catch (error) {
+          console.error('Error fetching my products:', error);
+          return [];
+      }
+  }
+
+  async deleteProduct(productID: number): Promise<any> {
+      try {
+          return await this.request<any>('/seller_products.php', {
+              method: 'DELETE',
+              body: JSON.stringify({ productID }),
+          }, true);
+      } catch (error) {
+          console.error('Error deleting product:', error);
+          throw error;
+      }
+  }
+
+
+  async updateProduct(productID: number, productData: any): Promise<any> {
+      try {
+          return await this.request<any>('/seller_products.php', {
+              method: 'PUT',
+              body: JSON.stringify({ productID, ...productData }),
+          }, true);
+      } catch (error) {
+          console.error('Error updating product:', error);
+          throw error;
+      }
+  }
+
+  // ========== MODERATOR METHODS ==========
+
+  async getPendingProducts(): Promise<any[]> {
+      try {
+          const result = await this.request<any[]>('/moderate_pending_products.php', {}, true);
+          return Array.isArray(result) ? result : [];
+      } catch (error) {
+          console.error('Error fetching pending products:', error);
+          return [];
+      }
+  }
+
+  async approveProduct(productID: number): Promise<any> {
+      try {
+          return await this.request<any>('/moderate_pending_products.php', {
+              method: 'POST',
+              body: JSON.stringify({ productID, action: 'approve' }),
+          }, true);
+      } catch (error) {
+          console.error('Error approving product:', error);
+          throw error;
+      }
+  }
+
+  async rejectProduct(productID: number, reason: string): Promise<any> {
+      try {
+          return await this.request<any>('/moderate_pending_products.php', {
+              method: 'POST',
+              body: JSON.stringify({ productID, action: 'reject', reason }),
+          }, true);
+      } catch (error) {
+          console.error('Error rejecting product:', error);
+          throw error;
+      }
+  }
 
 }
 

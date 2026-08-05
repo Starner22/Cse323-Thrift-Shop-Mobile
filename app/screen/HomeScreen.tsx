@@ -361,11 +361,13 @@ const HomeScreen = ({ navigation }: any) => {
 
         <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}
             onPress={() => {
-                if (user?.role === 'Seller') {
+                if (user?.role === 'Seller') 
                     navigation.navigate('SellerAccount');
-                } else {
+                 else if (user?.role === 'Moderator' || user?.role === 'Admin') 
+                    navigation.navigate('ModeratorAccount');
+                  else
                     navigation.navigate('Account');
-                }
+                
             }}
         >
             <Ionicons name="person-outline" size={26} color="#666" />

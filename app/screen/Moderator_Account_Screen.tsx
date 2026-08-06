@@ -92,7 +92,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
     };
 
     const handlePendingSellers = () => {
-        Alert.alert('Pending Sellers', 'Seller approval coming soon!');
+        navigation.navigate('ModeratePendingSellers');
     };
 
     const handleModerationHistory = () => {

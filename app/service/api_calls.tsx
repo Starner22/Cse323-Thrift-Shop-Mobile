@@ -365,16 +365,16 @@ class ApiService {
   }
   
   async updateSellerProfile(data: any): Promise<any> {
-    try {
-        return await this.request<any>('/seller_edit_business.php', {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }, true);
-    } catch (error) {
-        console.error('Error updating seller profile:', error);
-        throw error;
-    }
-}
+      try {
+          return await this.request<any>('/seller_edit_business.php', {
+              method: 'PUT',
+              body: JSON.stringify(data),
+          }, true);
+      } catch (error) {
+          console.error('Error updating seller profile:', error);
+          throw error;
+      }
+  }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<any> {
       try {
@@ -567,6 +567,42 @@ class ApiService {
           }, true);
       } catch (error) {
           console.error('Error rejecting product:', error);
+          throw error;
+      }
+  }
+
+  // ========== SELLER MODERATION METHODS ==========
+
+  async getPendingSellers(): Promise<any[]> {
+      try {
+          const result = await this.request<any[]>('/moderate_pending_sellers.php', {}, true);
+          return Array.isArray(result) ? result : [];
+      } catch (error) {
+          console.error('Error fetching pending sellers:', error);
+          return [];
+      }
+  }
+
+  async approveSeller(userID: number): Promise<any> {
+      try {
+          return await this.request<any>('/moderate_pending_sellers.php', {
+              method: 'POST',
+              body: JSON.stringify({ userID, action: 'approve' }),
+          }, true);
+      } catch (error) {
+          console.error('Error approving seller:', error);
+          throw error;
+      }
+  }
+
+  async rejectSeller(userID: number, reason: string): Promise<any> {
+      try {
+          return await this.request<any>('/moderate_pending_sellers.php', {
+              method: 'POST',
+              body: JSON.stringify({ userID, action: 'reject', reason }),
+          }, true);
+      } catch (error) {
+          console.error('Error rejecting seller:', error);
           throw error;
       }
   }

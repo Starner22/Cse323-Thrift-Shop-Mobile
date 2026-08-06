@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 05, 2026 at 07:57 AM
+-- Generation Time: Aug 06, 2026 at 04:33 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -41,7 +41,9 @@ INSERT INTO `cart` (`cartID`, `buyerID`, `created_at`) VALUES
 (1, 1, '2025-08-13 20:10:00'),
 (4, 5, '2025-08-13 22:20:49'),
 (5, 6, '2025-08-14 00:08:31'),
-(6, 7, '2026-07-27 12:46:04');
+(6, 7, '2026-07-27 12:46:04'),
+(7, 8, '2026-08-05 11:53:30'),
+(8, 9, '2026-08-05 16:47:13');
 
 -- --------------------------------------------------------
 
@@ -55,6 +57,15 @@ CREATE TABLE `cartitem` (
   `productID` int(11) NOT NULL,
   `quantity` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `cartitem`
+--
+
+INSERT INTO `cartitem` (`cartItemID`, `cartID`, `productID`, `quantity`) VALUES
+(12, 7, 47, 1),
+(13, 7, 46, 1),
+(14, 6, 47, 2);
 
 -- --------------------------------------------------------
 
@@ -234,7 +245,8 @@ INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`,
 (62, 'T-Shirt Lot', 'A bundle of assorted men\'s t-shirts.', 20.00, 'Good', 5, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
 (63, 'Desk Lamp', 'A modern desk lamp with an adjustable neck.', 18.00, 'Excellent', 5, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
 (64, 'Vintage Tea Set', 'A decorative tea set with floral patterns.', 60.00, 'Good', 5, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL);
+(65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
+(67, 'Duidin', 'Gdhdebryfbd', 2.00, 'Normal', 11, 22, 'uploads/product_1785947032_6a73639857566.jpg', 7, 'pending', '2026-08-05 16:23:52', '2026-08-05 17:42:45', NULL);
 
 -- --------------------------------------------------------
 
@@ -265,7 +277,8 @@ CREATE TABLE `seller_profile` (
 --
 
 INSERT INTO `seller_profile` (`sellerID`, `userID`, `business_name`, `business_address`, `business_phone`, `business_email`, `tax_id`, `bank_account`, `id_card_path`, `business_license_path`, `approval_status`, `approved_at`, `rejected_reason`, `created_at`, `updated_at`) VALUES
-(1, 7, 'Lisetsd', 'Asdfghaf', '01714079347', 'a@a.com', '123456678', '12344567891', NULL, NULL, 'pending', NULL, NULL, '2026-08-05 01:36:40', '2026-08-05 05:45:04');
+(1, 7, 'Lisetsd', 'Asdfghaf', '01714079347', 'a@a.com', '123456678', '12344567891', NULL, NULL, 'approved', NULL, NULL, '2026-08-05 01:36:40', '2026-08-05 14:30:10'),
+(2, 8, 'Liset Corp', '', '01819248208', '', '', '', NULL, NULL, 'approved', '2026-08-06 01:36:51', NULL, '2026-08-06 01:33:12', '2026-08-06 01:36:51');
 
 -- --------------------------------------------------------
 
@@ -317,7 +330,9 @@ INSERT INTO `user` (`userID`, `name`, `email`, `phone`, `address`, `password`, `
 (4, 'Seller', 'seller@shop.com', NULL, NULL, '$2y$10$JSj3rfVEPYM0QRp9mVFLmOZpWI6/WAggzAVKH100jdULjLcl5Ud.S', 'Seller', '2025-08-13 22:19:31', NULL),
 (5, 'buyer', 'buyer@shop.com', NULL, NULL, '$2y$10$JZ5/V0QujlSKwBozZQrCmOjLljm2A4XW4C6u.AJPeDTk3oqjqaY1W', 'Buyer', '2025-08-13 22:20:49', NULL),
 (6, 'Sohee', 'sohee@sohee.com', NULL, NULL, '$2y$10$/mYEo2oBym1rwXZ03AKOUe.Sp2l5XoinAzORb03EbVaL4luJ2wbxu', 'Buyer', '2025-08-14 00:08:31', NULL),
-(7, 'abc', 'a@a.com', '123', '', '$2y$10$JON.qMMPViApSMT3G2Dq0eJ5aZ04m.G43mZDVgjKRReCZ4elL6Exu', 'Seller', '2026-07-27 12:46:04', 'ed99dad332f4b7f385e18fe4f3937af3be02fdeff1baa7f2a6070a32052a7e64');
+(7, 'Seller_No.1', 's@s.com', '', '', '$2y$10$JON.qMMPViApSMT3G2Dq0eJ5aZ04m.G43mZDVgjKRReCZ4elL6Exu', 'Seller', '2026-07-27 12:46:04', 'ed99dad332f4b7f385e18fe4f3937af3be02fdeff1baa7f2a6070a32052a7e64'),
+(8, 'Buyer_No.1', 'b@b.com', NULL, NULL, '$2y$10$BLDz4F5ym3Kg8JIPLjh0yuEE5gr/ckAggRvCBT7Hv4NXCejz6BQK2', 'Seller', '2026-08-05 11:53:20', NULL),
+(9, 'Moderator_No.1', 'm@m.com', NULL, NULL, '$2y$10$h6RfUbPm404jEjz0IkGVUuOJouQ01thFxMQJ9JP7uQUrJNQBCzoxu', 'Moderator', '2026-08-05 16:41:10', NULL);
 
 -- --------------------------------------------------------
 
@@ -358,6 +373,7 @@ CREATE TABLE `wishlistitem` (
 --
 
 INSERT INTO `wishlistitem` (`wishlistItemID`, `wishlistID`, `productID`) VALUES
+(5, 4, 47),
 (4, 4, 49);
 
 --
@@ -467,13 +483,13 @@ ALTER TABLE `wishlistitem`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `cartID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `cartID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `cartitem`
 --
 ALTER TABLE `cartitem`
-  MODIFY `cartItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `cartItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -509,13 +525,13 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `product`
 --
 ALTER TABLE `product`
-  MODIFY `productID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `productID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- AUTO_INCREMENT for table `seller_profile`
 --
 ALTER TABLE `seller_profile`
-  MODIFY `sellerID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `sellerID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `supportticket`
@@ -527,7 +543,7 @@ ALTER TABLE `supportticket`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `userID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `userID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `wishlist`
@@ -539,7 +555,7 @@ ALTER TABLE `wishlist`
 -- AUTO_INCREMENT for table `wishlistitem`
 --
 ALTER TABLE `wishlistitem`
-  MODIFY `wishlistItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `wishlistItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables

@@ -88,7 +88,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
     };
 
     const handleAllProducts = () => {
-        Alert.alert('All Products', 'Product management coming soon!');
+        navigation.navigate('ModerateCurrentProducts');
     };
 
     const handlePendingSellers = () => {

@@ -30,6 +30,7 @@ import Seller_Edit_Product from './app/screen/Seller_Edit_Product';
 import Moderator_Account_Screen from './app/screen/Moderator_Account_Screen';
 import Moderate_Pending_Products from './app/screen/Moderate_Pending_Products';
 import Moderate_Pending_Sellers from './app/screen/Moderate_Pending_Sellers';
+import Moderate_Current_Products from './app/screen/Moderate_Current_Products';
 
 
 const SellScreen = () => null;
@@ -81,6 +82,7 @@ function AppNavigator() {
       <Stack.Screen name="ModeratorAccount" component={Moderator_Account_Screen} />
       <Stack.Screen name="ModeratePendingProducts" component={Moderate_Pending_Products} />
       <Stack.Screen name="ModeratePendingSellers" component={Moderate_Pending_Sellers} />
+      <Stack.Screen name="ModerateCurrentProducts" component={Moderate_Current_Products} />
     </Stack.Navigator>
   );
 }

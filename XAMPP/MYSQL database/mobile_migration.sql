@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 06, 2026 at 04:33 AM
+-- Generation Time: Aug 08, 2026 at 04:30 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -218,35 +218,41 @@ CREATE TABLE `product` (
   `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `location` varchar(255) DEFAULT NULL
+  `location` varchar(255) DEFAULT NULL,
+  `can_display` tinyint(1) DEFAULT 0,
+  `seller_active` tinyint(1) DEFAULT 1,
+  `moderation_notes` text DEFAULT NULL,
+  `seller_notes` text DEFAULT NULL,
+  `last_moderated_at` timestamp NULL DEFAULT NULL,
+  `seller_updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `product`
 --
 
-INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`, `quantity`, `categoryID`, `image_path`, `sellerID`, `status`, `created_at`, `updated_at`, `location`) VALUES
-(46, 'Vintage Leather Jacket', 'A classic leather jacket in good condition.', 75.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(47, 'Acoustic Guitar', 'Well-maintained acoustic guitar, perfect for beginners.', 120.00, 'Excellent', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(48, 'Used Computer Monitor', 'A 24-inch monitor with minor signs of wear.', 80.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(49, 'Antique Wooden Chair', 'A sturdy wooden chair with a unique design.', 45.00, 'Subpar', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(50, 'Complete Series DVD Set', 'The complete series of a popular TV show.', 25.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(51, 'Exercise Bike', 'A well-functioning exercise bike for home workouts.', 150.00, 'Good', 11, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(52, 'Board Game Collection', 'A lot of assorted board games, some new, some used.', 30.00, 'Normal', 12, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(53, 'Cast Iron Skillet', 'A seasoned cast iron skillet, ready to use.', 20.00, 'Good', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(54, 'Car Floor Mats (Set)', 'A set of used but clean car floor mats.', 15.00, 'Normal', 12, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(55, 'Handheld Blender', 'A powerful handheld blender with all accessories.', 35.00, 'Excellent', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(56, 'Digital Camera', 'A compact digital camera with a memory card.', 90.00, 'Good', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(57, 'Silver Necklace', 'A delicate silver chain necklace.', 50.00, 'Excellent', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(58, 'Hardcover Book Set', 'A collection of classic literature in hardcover.', 40.00, 'Good', 4, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(59, 'Dog Carrier Crate', 'A small dog carrier, perfect for vet visits.', 25.00, 'Normal', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(60, 'Art Easel', 'A portable wooden art easel with some paint stains.', 30.00, 'Normal', 6, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(61, 'Wireless Mouse', 'A used wireless mouse with a USB receiver.', 10.00, 'Good', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(62, 'T-Shirt Lot', 'A bundle of assorted men\'s t-shirts.', 20.00, 'Good', 5, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(63, 'Desk Lamp', 'A modern desk lamp with an adjustable neck.', 18.00, 'Excellent', 5, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(64, 'Vintage Tea Set', 'A decorative tea set with floral patterns.', 60.00, 'Good', 5, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2025-08-20 16:53:44', NULL),
-(67, 'Duidin', 'Gdhdebryfbd', 2.00, 'Normal', 11, 22, 'uploads/product_1785947032_6a73639857566.jpg', 7, 'pending', '2026-08-05 16:23:52', '2026-08-05 17:42:45', NULL);
+INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`, `quantity`, `categoryID`, `image_path`, `sellerID`, `status`, `created_at`, `updated_at`, `location`, `can_display`, `seller_active`, `moderation_notes`, `seller_notes`, `last_moderated_at`, `seller_updated_at`) VALUES
+(46, 'Vintage Leather Jacket', 'A classic leather jacket in good condition.', 75.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:39', NULL, 1, 1, NULL, NULL, '2026-08-08 00:20:39', NULL),
+(47, 'Acoustic Guitar', 'Well-maintained acoustic guitar, perfect for beginners.', 120.00, 'Excellent', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(48, 'Used Computer Monitor', 'A 24-inch monitor with minor signs of wear.', 80.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(49, 'Antique Wooden Chair', 'A sturdy wooden chair with a unique design.', 45.00, 'Subpar', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(50, 'Complete Series DVD Set', 'The complete series of a popular TV show.', 25.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(51, 'Exercise Bike', 'A well-functioning exercise bike for home workouts.', 150.00, 'Good', 11, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(52, 'Board Game Collection', 'A lot of assorted board games, some new, some used.', 30.00, 'Normal', 12, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(53, 'Cast Iron Skillet', 'A seasoned cast iron skillet, ready to use.', 20.00, 'Good', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(54, 'Car Floor Mats (Set)', 'A set of used but clean car floor mats.', 15.00, 'Normal', 12, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(55, 'Handheld Blender', 'A powerful handheld blender with all accessories.', 35.00, 'Excellent', 12, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(56, 'Digital Camera', 'A compact digital camera with a memory card.', 90.00, 'Good', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(57, 'Silver Necklace', 'A delicate silver chain necklace.', 50.00, 'Excellent', 4, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(58, 'Hardcover Book Set', 'A collection of classic literature in hardcover.', 40.00, 'Good', 4, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(59, 'Dog Carrier Crate', 'A small dog carrier, perfect for vet visits.', 25.00, 'Normal', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(60, 'Art Easel', 'A portable wooden art easel with some paint stains.', 30.00, 'Normal', 6, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(61, 'Wireless Mouse', 'A used wireless mouse with a USB receiver.', 10.00, 'Good', 5, 7, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(62, 'T-Shirt Lot', 'A bundle of assorted men\'s t-shirts.', 20.00, 'Good', 5, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(63, 'Desk Lamp', 'A modern desk lamp with an adjustable neck.', 18.00, 'Excellent', 5, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(64, 'Vintage Tea Set', 'A decorative tea set with floral patterns.', 60.00, 'Good', 5, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(67, 'Duidin', 'Gdhdebryfbd', 2.00, 'Normal', 11, 22, 'uploads/product_1785947032_6a73639857566.jpg', 7, 'pending', '2026-08-05 16:23:52', '2026-08-05 17:42:45', NULL, 0, 1, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 

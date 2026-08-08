@@ -537,75 +537,127 @@ class ApiService {
 
   // ========== MODERATOR METHODS ==========
 
-  async getPendingProducts(): Promise<any[]> {
-      try {
-          const result = await this.request<any[]>('/moderate_pending_products.php', {}, true);
-          return Array.isArray(result) ? result : [];
-      } catch (error) {
-          console.error('Error fetching pending products:', error);
-          return [];
-      }
-  }
+	async getPendingProducts(): Promise<any[]> {
+		try {
+				const result = await this.request<any[]>('/moderate_pending_products.php', {}, true);
+				return Array.isArray(result) ? result : [];
+		} catch (error) {
+				console.error('Error fetching pending products:', error);
+				return [];
+		}
+	}
 
-  async approveProduct(productID: number): Promise<any> {
-      try {
-          return await this.request<any>('/moderate_pending_products.php', {
-              method: 'POST',
-              body: JSON.stringify({ productID, action: 'approve' }),
-          }, true);
-      } catch (error) {
-          console.error('Error approving product:', error);
-          throw error;
-      }
-  }
+	async approveProduct(productID: number): Promise<any> {
+		try {
+				return await this.request<any>('/moderate_pending_products.php', {
+					method: 'POST',
+					body: JSON.stringify({ productID, action: 'approve' }),
+				}, true);
+		} catch (error) {
+				console.error('Error approving product:', error);
+				throw error;
+		}
+	}
 
-  async rejectProduct(productID: number, reason: string): Promise<any> {
-      try {
-          return await this.request<any>('/moderate_pending_products.php', {
-              method: 'POST',
-              body: JSON.stringify({ productID, action: 'reject', reason }),
-          }, true);
-      } catch (error) {
-          console.error('Error rejecting product:', error);
-          throw error;
-      }
-  }
+	async rejectProduct(productID: number, reason: string): Promise<any> {
+		try {
+				return await this.request<any>('/moderate_pending_products.php', {
+					method: 'POST',
+					body: JSON.stringify({ productID, action: 'reject', reason }),
+				}, true);
+		} catch (error) {
+				console.error('Error rejecting product:', error);
+				throw error;
+		}
+	}
 
   // ========== SELLER MODERATION METHODS ==========
 
-  async getPendingSellers(): Promise<any[]> {
-      try {
-          const result = await this.request<any[]>('/moderate_pending_sellers.php', {}, true);
-          return Array.isArray(result) ? result : [];
-      } catch (error) {
-          console.error('Error fetching pending sellers:', error);
-          return [];
-      }
-  }
+	async getPendingSellers(): Promise<any[]> {
+		try {
+				const result = await this.request<any[]>('/moderate_pending_sellers.php', {}, true);
+				return Array.isArray(result) ? result : [];
+		} catch (error) {
+				console.error('Error fetching pending sellers:', error);
+				return [];
+		}
+	}
 
-  async approveSeller(userID: number): Promise<any> {
-      try {
-          return await this.request<any>('/moderate_pending_sellers.php', {
-              method: 'POST',
-              body: JSON.stringify({ userID, action: 'approve' }),
-          }, true);
-      } catch (error) {
-          console.error('Error approving seller:', error);
-          throw error;
-      }
-  }
+	async approveSeller(userID: number): Promise<any> {
+		try {
+				return await this.request<any>('/moderate_pending_sellers.php', {
+					method: 'POST',
+					body: JSON.stringify({ userID, action: 'approve' }),
+				}, true);
+		} catch (error) {
+				console.error('Error approving seller:', error);
+				throw error;
+		}
+	}
 
-  async rejectSeller(userID: number, reason: string): Promise<any> {
-      try {
-          return await this.request<any>('/moderate_pending_sellers.php', {
-              method: 'POST',
-              body: JSON.stringify({ userID, action: 'reject', reason }),
-          }, true);
-      } catch (error) {
-          console.error('Error rejecting seller:', error);
-          throw error;
-      }
-  }
+	async rejectSeller(userID: number, reason: string): Promise<any> {
+		try {
+				return await this.request<any>('/moderate_pending_sellers.php', {
+					method: 'POST',
+					body: JSON.stringify({ userID, action: 'reject', reason }),
+				}, true);
+		} catch (error) {
+				console.error('Error rejecting seller:', error);
+				throw error;
+		}
+	}
+
+// ========== MODERATOR PRODUCT MANAGEMENT ==========
+
+	async getAllProductsForModeration(filter?: string): Promise<any[]> {
+		try {
+			let endpoint = '/moderate_current_products.php';
+			if (filter) {
+					endpoint += `?filter=${filter}`;
+			}
+			const result = await this.request<any[]>(endpoint, {}, true);
+			return Array.isArray(result) ? result : [];
+		} catch (error) {
+			console.error('Error fetching products for moderation:', error);
+			return [];
+		}
+	}
+
+	async updateProductVisibility(productID: number, canDisplay: boolean): Promise<any> {
+		try {
+			return await this.request<any>('/moderate_current_products.php', {
+					method: 'PUT',
+					body: JSON.stringify({ productID, canDisplay, action: 'toggle_display' }),
+			}, true);
+		} catch (error) {
+			console.error('Error updating product visibility:', error);
+			throw error;
+		}
+	}
+
+	async moderateUpdateProduct(productID: number, productData: any): Promise<any> {
+		try {
+			return await this.request<any>('/moderate_current_products.php', {
+					method: 'PUT',
+					body: JSON.stringify({ productID, ...productData, action: 'update_details' }),
+			}, true);
+		} catch (error) {
+			console.error('Error updating product details:', error);
+			throw error;
+		}
+	}
+
+	async addModerationNote(productID: number, note: string): Promise<any> {
+		try {
+			return await this.request<any>('/moderate_current_products.php', {
+					method: 'POST',
+					body: JSON.stringify({ productID, note, action: 'add_note' }),
+			}, true);
+		} catch (error) {
+			console.error('Error adding moderation note:', error);
+			throw error;
+		}
+	}
 
 }
 

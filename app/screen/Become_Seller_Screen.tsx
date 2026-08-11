@@ -204,6 +204,49 @@ const BecomeSellerScreen = ({ navigation }: any) => {
             </SafeAreaView>
         );
     }
+    else if (hasApplied && applicationStatus === 'suspended') {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+                <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={28} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.storeTitle}>Account Suspended</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                    <View style={[styles.statusContainer, styles.suspendedContainer]}>
+                        <Ionicons name="ban-outline" size={60} color="#6C5CE7" />
+                        <Text style={styles.statusTitle}>Account Suspended</Text>
+                        <Text style={styles.statusText}>
+                            Your seller account has been suspended by the moderation team.
+                        </Text>
+                        {profileData?.rejected_reason && (
+                            <Text style={styles.reasonText}>
+                                Reason: {profileData.rejected_reason}
+                            </Text>
+                        )}
+                        <Text style={styles.statusSubtext}>
+                            Please contact support for more information.
+                        </Text>
+                        <TouchableOpacity 
+                            style={styles.contactSupportButton}
+                            onPress={() => Alert.alert('Contact Support', 'Support will reach out to you shortly.')}
+                        >
+                            <Text style={styles.contactSupportButtonText}>Contact Support</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.backButton}
+                            onPress={() => navigation.goBack()}
+                        >
+                            <Text style={styles.backButtonText}>Go Back</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        );
+    }
 
     // Show form for: new application OR rejected (with edit mode)
     const showForm = !hasApplied || (hasApplied && applicationStatus === 'rejected');
@@ -502,15 +545,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginLeft: 6,
     },
-    contactSupportButton: {
-        backgroundColor: '#FF6B6B',
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     contactSupportText: {
         color: '#fff',
         fontWeight: '600',
@@ -552,6 +586,57 @@ const styles = StyleSheet.create({
         color: '#888',
         marginTop: 2,
     },
+
+    suspendedContainer: {
+        backgroundColor: '#f3e5f5',
+        borderColor: '#6C5CE7',
+    },
+    reasonText: {
+        fontSize: 14,
+        color: '#6C5CE7',
+        textAlign: 'center',
+        marginTop: 8,
+        fontWeight: '500',
+    },
+    contactSupportButton: {
+        marginTop: 20,
+        backgroundColor: '#6C5CE7',
+        paddingVertical: 14,
+        paddingHorizontal: 40,
+        borderRadius: 10,
+        width: '100%',
+        alignItems: 'center',
+    },
+    contactSupportButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+
+    statusContainer: {
+        alignItems: 'center',
+        paddingVertical: 30,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginTop: 20,
+    },
+    statusSubtext: {
+        fontSize: 13,
+        color: '#999',
+        textAlign: 'center',
+        marginTop: 8,
+    },
+    backButton: {
+        marginTop: 20,
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+    },
+    backButtonText: {
+        color: '#666',
+        fontSize: 15,
+    },
+
 });
 
 export default BecomeSellerScreen;

@@ -78,37 +78,58 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleSellPress = () => {
+ const handleSellPress = () => {
       // Case 1: User is not a Seller
       if (user?.role !== 'Seller') {
           navigation.navigate('BecomeSeller');
           return;
       }
 
-      // Case 2: User is a Seller but status is pending
+      // Case 2: User is a Seller but status == pending
       if (sellerStatus === 'pending') {
           Alert.alert(
               'Application Pending',
               'Your seller application is still under review.\n\n' +
-              'You will be able to sell products once approved.',
+              'You will be able to sell products once approved.\n' +
+              'This usually takes 1-2 business days.',
               [{ text: 'OK' }]
           );
           return;
       }
 
-      // Case 3: User is a Seller but status is rejected
+      // Case 3: User is a Seller but status == rejected
       if (sellerStatus === 'rejected') {
           navigation.navigate('SellerClearanceIssue');
           return;
       }
 
-      // Case 4: User is an approved Seller
+      // Case 4 : User is a Seller bt status == suspended
+      if (sellerStatus === 'suspended') {
+          Alert.alert(
+              'Account Suspended',
+              'Your seller account has been suspended.\n\n' +
+              'You cannot sell products at this time.\n' +
+              'Please contact support for more information.',
+              [
+                  { text: 'OK' },
+                  { 
+                      text: 'Contact Support', 
+                      onPress: () => {
+                          Alert.alert('Contact Support', 'Support will reach out to you shortly.');
+                      }
+                  }
+              ]
+          );
+          return;
+      }
+
+      // Case 5: User is an approved Seller
       if (user?.role === 'Seller' && sellerStatus === 'approved') {
           navigation.navigate('SellerSellProduct');
           return;
       }
 
-      // Fallback: Something went wrong
+      // Fallback
       Alert.alert(
           'Unable to Sell',
           'There was an issue accessing the sell page. Please contact support.',

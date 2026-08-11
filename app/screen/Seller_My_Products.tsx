@@ -28,12 +28,14 @@ interface Product {
     categoryName?: string;
     image_path: string;
     status: 'pending' | 'approved' | 'rejected';
+    seller_active?: number;
+    can_display?: number;
+    moderation_notes?: string;
     created_at: string;
     rejected_reason?: string;
 }
 
 const Seller_My_Products = ({ navigation }: any) => {
-    const { isAuthenticated } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -41,11 +43,15 @@ const Seller_My_Products = ({ navigation }: any) => {
     const [activeFilter, setActiveFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [togglingId, setTogglingId] = useState<number | null>(null);
+    const { user, isAuthenticated } = useAuth();
+    const [isSuspended, setIsSuspended] = useState(false);
 
     const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
 
     useEffect(() => {
         if (isAuthenticated) {
+            checkSellerStatus();
             fetchProducts();
         }
     }, [isAuthenticated]);
@@ -53,6 +59,17 @@ const Seller_My_Products = ({ navigation }: any) => {
     useEffect(() => {
         filterProducts();
     }, [products, activeFilter, searchQuery]);
+
+    const checkSellerStatus = async () => {
+        try {
+            const response = await apiService.checkSellerStatus();
+            if (response.hasApplied && response.status === 'suspended') {
+                setIsSuspended(true);
+            }
+        } catch (error) {
+            console.error('Error checking seller status:', error);
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -76,12 +93,10 @@ const Seller_My_Products = ({ navigation }: any) => {
     const filterProducts = () => {
         let filtered = [...products];
 
-        // Apply status filter
         if (activeFilter !== 'all') {
             filtered = filtered.filter(p => p.status === activeFilter);
         }
 
-        // Apply search filter
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase().trim();
             filtered = filtered.filter(p =>
@@ -123,6 +138,38 @@ const Seller_My_Products = ({ navigation }: any) => {
         navigation.navigate('SellerEditProduct', { product });
     };
 
+    // ============================================================
+    // NEW: Toggle visibility handler
+    // ============================================================
+    const handleToggleVisibility = async (product: Product) => {
+        const isVisible = product.seller_active === 1;
+        const newStatus = isVisible ? 0 : 1;
+        const action = newStatus === 1 ? 'Show' : 'Hide';
+        
+        Alert.alert(
+            `${action} Product`,
+            `Are you sure you want to ${action.toLowerCase()} "${product.name}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: action,
+                    onPress: async () => {
+                        try {
+                            setTogglingId(product.productID);
+                            await apiService.toggleProductVisibility(product.productID, newStatus === 1);
+                            await fetchProducts();
+                            Alert.alert('Success', `Product ${action.toLowerCase()}ed successfully`);
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message || 'Failed to update visibility');
+                        } finally {
+                            setTogglingId(null);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'approved':
@@ -136,28 +183,53 @@ const Seller_My_Products = ({ navigation }: any) => {
         }
     };
 
+    const getStatusIcon = (status: string): any => {
+        switch (status) {
+            case 'approved': return 'checkmark-circle';
+            case 'pending': return 'time-outline';
+            case 'rejected': return 'close-circle';
+            default: return 'alert-circle';
+        }
+    };
+
     const renderProduct = ({ item }: { item: Product }) => {
         const statusConfig = getStatusConfig(item.status);
         const imageUrl = item.image_path ? `${imageBaseUrl}${item.image_path}` : null;
         const isDeleting = deletingId === item.productID;
+        const isToggling = togglingId === item.productID;
+        const isVisible = item.seller_active === 1;
+        const isHiddenByMod = item.can_display === 0;
 
-        const getStatusIcon = (status: string): any => {
-            switch (status) {
-                case 'approved': return 'checkmark-circle';
-                case 'pending': return 'time-outline';
-                case 'rejected': return 'close-circle';
-                default: return 'alert-circle';
-            }
-        };
+        // Determine visibility status
+        let visibilityText = '';
+        let visibilityColor = '';
+        let visibilityIcon: any = '';
+
+        if (isHiddenByMod) {
+            visibilityText = 'Hidden by Moderator';
+            visibilityColor = '#FF6B6B';
+            visibilityIcon = 'shield-checkmark';
+        } else if (!isVisible) {
+            visibilityText = 'Hidden by Seller';
+            visibilityColor = '#FF9F43';
+            visibilityIcon = 'eye-off';
+        } else {
+            visibilityText = 'Visible';
+            visibilityColor = '#4CAF50';
+            visibilityIcon = 'eye';
+        }
 
         return (
-            <View style={styles.productCard}>
+            <View style={[
+                styles.productCard, 
+                !isVisible && styles.hiddenCard,
+                isHiddenByMod && styles.moderatorHiddenCard
+            ]}>
                 <TouchableOpacity 
                     style={styles.cardContent}
                     onPress={() => navigation.navigate('ProductDetail', { productId: item.productID })}
                     activeOpacity={0.7}
                 >
-                    {/* Product Image */}
                     <View style={styles.imageContainer}>
                         {imageUrl ? (
                             <Image source={{ uri: imageUrl }} style={styles.productImage} />
@@ -166,9 +238,13 @@ const Seller_My_Products = ({ navigation }: any) => {
                                 <Ionicons name="image-outline" size={30} color="#ccc" />
                             </View>
                         )}
+                        {/* Visibility Badge */}
+                        <View style={[styles.hiddenBadge, { backgroundColor: isHiddenByMod ? '#FF6B6B' : '#FF9F43' }]}>
+                            <Ionicons name={visibilityIcon} size={12} color="#fff" />
+                            <Text style={styles.hiddenBadgeText}>{visibilityText}</Text>
+                        </View>
                     </View>
 
-                    {/* Product Info */}
                     <View style={styles.productInfo}>
                         <Text style={styles.productName} numberOfLines={2}>
                             {item.name}
@@ -183,16 +259,23 @@ const Seller_My_Products = ({ navigation }: any) => {
                             <Text style={[styles.statusText, { color: statusConfig.color }]}>
                                 {statusConfig.label}
                             </Text>
+                            {item.status === 'approved' && (
+                                <View style={[styles.visibilityDot, { backgroundColor: isHiddenByMod ? '#FF6B6B' : (isVisible ? '#4CAF50' : '#FF9F43') }]} />
+                            )}
                         </View>
                         {item.status === 'rejected' && item.rejected_reason && (
                             <Text style={styles.rejectedReason} numberOfLines={1}>
                                 Reason: {item.rejected_reason}
                             </Text>
                         )}
+                        {isHiddenByMod && item.moderation_notes && (
+                            <Text style={styles.moderationNote} numberOfLines={1}>
+                                📝 {item.moderation_notes}
+                            </Text>
+                        )}
                     </View>
                 </TouchableOpacity>
 
-                {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                     <TouchableOpacity 
                         style={[styles.actionButton, styles.editButton]}
@@ -201,6 +284,44 @@ const Seller_My_Products = ({ navigation }: any) => {
                         <Ionicons name="create-outline" size={18} color="#4CAF50" />
                         <Text style={styles.editButtonText}>Edit</Text>
                     </TouchableOpacity>
+
+                    {/* Show/Hide Button - Only for approved products AND not hidden by moderator */}
+                    {item.status === 'approved' && !isHiddenByMod && (
+                        <TouchableOpacity 
+                            style={[
+                                styles.actionButton, 
+                                isVisible ? styles.hideButton : styles.showButton
+                            ]}
+                            onPress={() => handleToggleVisibility(item)}
+                            disabled={isToggling}
+                        >
+                            {isToggling ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <>
+                                    <Ionicons 
+                                        name={isVisible ? "eye-off-outline" : "eye-outline"} 
+                                        size={18} 
+                                        color="#fff" 
+                                    />
+                                    <Text style={styles.actionButtonText}>
+                                        {isVisible ? 'Hide' : 'Show'}
+                                    </Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Show disabled button if hidden by moderator */}
+                    {item.status === 'approved' && isHiddenByMod && (
+                        <TouchableOpacity 
+                            style={[styles.actionButton, styles.moderatorDisabledButton]}
+                            disabled={true}
+                        >
+                            <Ionicons name="lock-closed-outline" size={18} color="#999" />
+                            <Text style={styles.moderatorDisabledText}>Locked</Text>
+                        </TouchableOpacity>
+                    )}
 
                     <TouchableOpacity 
                         style={[styles.actionButton, styles.deleteButton]}
@@ -220,6 +341,34 @@ const Seller_My_Products = ({ navigation }: any) => {
             </View>
         );
     };
+
+    if (isSuspended) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+                <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={28} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.storeTitle}>My Products</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <View style={styles.suspendedContainer}>
+                    <Ionicons name="ban-outline" size={60} color="#6C5CE7" />
+                    <Text style={styles.suspendedTitle}>Account Suspended</Text>
+                    <Text style={styles.suspendedText}>
+                        Your seller account has been suspended. You cannot manage products at this time.
+                    </Text>
+                    <TouchableOpacity 
+                        style={styles.contactSupportButton}
+                        onPress={() => Alert.alert('Contact Support', 'Support will reach out to you shortly.')}
+                    >
+                        <Text style={styles.contactSupportButtonText}>Contact Support</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     if (!isAuthenticated) {
         return (
@@ -246,7 +395,6 @@ const Seller_My_Products = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -260,7 +408,6 @@ const Seller_My_Products = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                     <Ionicons name="search" size={20} color="#999" />
@@ -279,7 +426,6 @@ const Seller_My_Products = ({ navigation }: any) => {
                 </View>
             </View>
 
-            {/* Filter Tabs */}
             <View style={styles.filterContainer}>
                 {['all', 'pending', 'approved', 'rejected'].map((filter) => {
                     const count = products.filter(p => filter === 'all' ? true : p.status === filter).length;
@@ -475,6 +621,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
     },
+    hiddenCard: {
+        borderColor: '#FF9F43',
+        borderWidth: 1.5,
+        backgroundColor: '#fffbf0',
+    },
     cardContent: {
         flexDirection: 'row',
     },
@@ -484,6 +635,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: 'hidden',
         backgroundColor: '#f5f5f5',
+        position: 'relative',
     },
     productImage: {
         width: '100%',
@@ -492,6 +644,23 @@ const styles = StyleSheet.create({
     imagePlaceholder: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    hiddenBadge: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 159, 67, 0.9)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12,
+        gap: 4,
+    },
+    hiddenBadgeText: {
+        fontSize: 10,
+        color: '#fff',
+        fontWeight: 'bold',
     },
     productInfo: {
         flex: 1,
@@ -527,6 +696,12 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginLeft: 4,
     },
+    visibilityDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginLeft: 6,
+    },
     rejectedReason: {
         fontSize: 11,
         color: '#FF6B6B',
@@ -557,6 +732,21 @@ const styles = StyleSheet.create({
     editButtonText: {
         fontSize: 13,
         color: '#4CAF50',
+        fontWeight: '500',
+    },
+    hideButton: {
+        backgroundColor: '#FF9F43',
+        borderWidth: 1,
+        borderColor: '#FF9F43',
+    },
+    showButton: {
+        backgroundColor: '#4CAF50',
+        borderWidth: 1,
+        borderColor: '#4CAF50',
+    },
+    actionButtonText: {
+        fontSize: 13,
+        color: '#fff',
         fontWeight: '500',
     },
     deleteButton: {
@@ -631,6 +821,61 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    suspendedContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+        backgroundColor: '#f8f9fa',
+    },
+    suspendedTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 16,
+    },
+    suspendedText: {
+        fontSize: 15,
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 22,
+    },
+    contactSupportButton: {
+        marginTop: 24,
+        backgroundColor: '#6C5CE7',
+        paddingHorizontal: 40,
+        paddingVertical: 14,
+        borderRadius: 10,
+    },
+    contactSupportButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+
+    moderatorHiddenCard: {
+        borderColor: '#FF6B6B',
+        borderWidth: 1.5,
+        backgroundColor: '#fff5f5',
+    },
+    moderatorDisabledButton: {
+        backgroundColor: '#f0f0f0',
+        borderWidth: 1,
+        borderColor: '#ddd',
+        opacity: 0.6,
+    },
+    moderatorDisabledText: {
+        fontSize: 13,
+        color: '#999',
+        fontWeight: '500',
+    },
+    moderationNote: {
+        fontSize: 11,
+        color: '#FF6B6B',
+        marginTop: 2,
+        fontStyle: 'italic',
     },
 });
 

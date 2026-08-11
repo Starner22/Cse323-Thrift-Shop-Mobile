@@ -20,6 +20,8 @@ const Seller_Account_Screen = ({ navigation }: any) => {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [sellerProfile, setSellerProfile] = useState<any>(null);
+    const [sellerStatus, setSellerStatus] = useState<string | null>(null);
+    const [isSuspended, setIsSuspended] = useState(false);  
     const [stats, setStats] = useState({
         totalProducts: 0,
         totalOrders: 0,
@@ -35,28 +37,26 @@ const Seller_Account_Screen = ({ navigation }: any) => {
     }, [isAuthenticated]);
 
     const fetchSellerData = async () => {
-        const productsData = await apiService.getMyProducts();
-        setStats(prev => ({
-            ...prev,
-            totalProducts: productsData.length,
-            pendingOrders: productsData.filter(p => p.status === 'pending').length
-        }));
         try {
             setLoading(true);
             // Fetch seller profile
             const profile = await apiService.checkSellerStatus();
-            if (profile.hasApplied && profile.status === 'approved') {
-                setSellerProfile(profile.profile);
+            if (profile.hasApplied) {
+                setSellerStatus(profile.status);
+                setIsSuspended(profile.status === 'suspended');
+                if (profile.status === 'approved') {
+                    setSellerProfile(profile.profile);
+                }
             }
 
-            // Fetch seller stats (you'll need to implement these endpoints)
-            // For now, using placeholder data
+            // Fetch seller stats
+            const productsData = await apiService.getMyProducts();
             setStats({
-                totalProducts: 12,
+                totalProducts: productsData.length || 12,
                 totalOrders: 45,
                 totalSales: 7890,
                 totalReviews: 23,
-                pendingOrders: 3
+                pendingOrders: productsData.filter(p => p.status === 'pending').length || 3
             });
         } catch (error) {
             console.error('Error fetching seller data:', error);
@@ -97,11 +97,9 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('User_Edit_Profile'); 
     };
 
-
     const handleChangePassword = () => {
         navigation.navigate('UserPasswordEdit');
     };
-    
 
     const handleMyOrders = () => {
         Alert.alert('My Orders', 'Orders page coming soon!');
@@ -132,8 +130,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         }
         return user.name.substring(0, 2).toUpperCase();
     };
-
-    
 
     // Format currency
     const formatCurrency = (amount: number) => {
@@ -191,8 +187,10 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                             <Text style={styles.roleBadgeText}>Seller ⭐</Text>
                         </View>
                     </View>
+
                     <Text style={styles.userName}>{user?.name || 'User'}</Text>
                     <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
+
                     {sellerProfile && (
                         <>
                             <View style={styles.storeInfoContainer}>
@@ -209,11 +207,21 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                             )}
                         </>
                     )}
+
                     <View style={styles.sellerSince}>
                         <Text style={styles.sellerSinceText}>
                             Seller since {user?.registration_date ? new Date(user.registration_date).toLocaleDateString() : 'N/A'}
                         </Text>
                     </View>
+
+                    {isSuspended && (
+                        <View style={styles.suspendedBanner}>
+                            <Ionicons name="alert-circle" size={20} color="#FF6B6B" />
+                            <Text style={styles.suspendedBannerText}>
+                                Your seller account has been suspended. Please contact support.
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Stats Cards */}
@@ -263,21 +271,82 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     </View>
                 </View>
 
-                {/* Seller Menu */}
+                {/* Seller Menu - Conditional based on suspension */}
                 <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Account Features</Text>
-                    <TouchableOpacity style={styles.menuItem} onPress={handleMyProducts}>
-                        <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
-                                <Ionicons name="cube-outline" size={22} color="#4CAF50" />
-                            </View>
-                            <Text style={styles.menuText}>My Products</Text>
+                    <Text style={styles.menuTitle}>Seller Tools</Text>
+
+                    {!isSuspended ? (
+                        <>
+                            <TouchableOpacity style={styles.menuItem} onPress={handleMyProducts}>
+                                <View style={styles.menuLeft}>
+                                    <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                        <Ionicons name="cube-outline" size={22} color="#4CAF50" />
+                                    </View>
+                                    <Text style={styles.menuText}>My Products</Text>
+                                </View>
+                                <View style={styles.menuRight}>
+                                    <Text style={styles.menuBadge}>{stats.totalProducts}</Text>
+                                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.menuItem} onPress={handleMyOrders}>
+                                <View style={styles.menuLeft}>
+                                    <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                        <Ionicons name="receipt-outline" size={22} color="#2196F3" />
+                                    </View>
+                                    <Text style={styles.menuText}>My Orders</Text>
+                                </View>
+                                <View style={styles.menuRight}>
+                                    {stats.pendingOrders > 0 && (
+                                        <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{stats.pendingOrders}</Text>
+                                    )}
+                                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.menuItem} onPress={handleMyWishlist}>
+                                <View style={styles.menuLeft}>
+                                    <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
+                                        <Ionicons name="heart-outline" size={22} color="#FF6B6B" />
+                                    </View>
+                                    <Text style={styles.menuText}>My Wishlist</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.menuItem} onPress={handleSalesAnalytics}>
+                                <View style={styles.menuLeft}>
+                                    <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                        <Ionicons name="bar-chart-outline" size={22} color="#FF9800" />
+                                    </View>
+                                    <Text style={styles.menuText}>Sales Analytics</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.menuItem} onPress={handleStoreSettings}>
+                                <View style={styles.menuLeft}>
+                                    <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
+                                        <Ionicons name="settings-outline" size={22} color="#9C27B0" />
+                                    </View>
+                                    <Text style={styles.menuText}>Store Settings</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <View style={styles.suspendedMessageContainer}>
+                            <Ionicons name="ban-outline" size={40} color="#6C5CE7" />
+                            <Text style={styles.suspendedMessageText}>
+                                Your account is suspended. Seller tools are disabled.
+                            </Text>
                         </View>
-                        <View style={styles.menuRight}>
-                            <Text style={styles.menuBadge}>{stats.totalProducts}</Text>
-                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                        </View>
-                    </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Account Settings */}
+                <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Account Settings</Text>
 
                     <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
@@ -345,6 +414,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
+        flex: 1,
+        textAlign: 'center',
     },
     // Not logged in
     notLoggedInContainer: {
@@ -455,6 +526,36 @@ const styles = StyleSheet.create({
     sellerSinceText: {
         fontSize: 11,
         color: '#888',
+    },
+    suspendedBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff5f5',
+        borderWidth: 1,
+        borderColor: '#FF6B6B',
+        borderRadius: 8,
+        padding: 12,
+        marginTop: 12,
+        marginHorizontal: 16,
+        gap: 8,
+    },
+    suspendedBannerText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#FF6B6B',
+        lineHeight: 18,
+    },
+    suspendedMessageContainer: {
+        alignItems: 'center',
+        paddingVertical: 24,
+        paddingHorizontal: 16,
+    },
+    suspendedMessageText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 20,
     },
     // Stats
     statsContainer: {

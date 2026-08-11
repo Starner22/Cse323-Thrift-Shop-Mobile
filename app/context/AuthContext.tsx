@@ -11,7 +11,7 @@ interface AuthContextData {
     register: (name: string, email: string, password: string) => Promise<boolean>;
     logout: () => Promise<void>;
     checkAuthStatus: () => Promise<void>;
-    updateUser: (userData: any) => Promise<void>;  // ← ADD THIS
+    updateUser: (userData: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -38,9 +38,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const hasValidToken = await StorageService.hasValidToken();
             
             if (hasValidToken) {
+                // First try to get user from storage
+                const storedUser = await StorageService.getUser();
+                if (storedUser) {
+                    setUser(storedUser);
+                    setIsAuthenticated(true);
+                    console.log('Auto-login successful');
+                    setIsLoading(false);
+                    return;
+                }
+                
+                // If no stored user, fetch from server
                 const userData = await apiService.getCurrentUser();
                 if (userData) {
-                    setUser(userData);
+                    // Make sure permissions are included
+                    const userWithPermissions = {
+                        ...userData,
+                        permissions: userData.permissions || {
+                            can_moderate_sellers: false,
+                            can_moderate_products: false,
+                            can_approve_sellers: false,
+                            can_manage_reports: false,
+                            can_view_analytics: false,
+                            can_manage_moderators: false
+                        }
+                    };
+                    setUser(userWithPermissions);
+                    await StorageService.storeUser(userWithPermissions);
                     setIsAuthenticated(true);
                     console.log('Auto-login successful');
                 } else {
@@ -63,8 +87,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const response = await apiService.login(email, password);
             
             if (response.success) {
-                setUser(response.user);
+                // Make sure permissions are included with defaults
+                const userWithPermissions = {
+                    ...response.user,
+                    permissions: response.user.permissions || {
+                        can_moderate_sellers: false,
+                        can_moderate_products: false,
+                        can_approve_sellers: false,
+                        can_manage_reports: false,
+                        can_view_analytics: false,
+                        can_manage_moderators: false
+                    }
+                };
+                
+                // Store both in state and persistent storage
+                setUser(userWithPermissions);
+                await StorageService.storeUser(userWithPermissions);
                 setIsAuthenticated(true);
+                
+                console.log('✅ Login successful with permissions:', userWithPermissions.permissions);
                 return true;
             } else {
                 Alert.alert('Login Failed', response.message || 'Invalid credentials');
@@ -111,16 +152,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const updateUser = async (userData: any): Promise<void> => {
         try {
-            // Update local user state
-            setUser((prevUser: any) => ({
-                ...prevUser,
-                ...userData
-            }));
+            // Update local user state - merge with existing
+            setUser((prevUser: any) => {
+                const updated = {
+                    ...prevUser,
+                    ...userData,
+                    // Preserve permissions if they exist
+                    permissions: userData.permissions || prevUser?.permissions || {
+                        can_moderate_sellers: false,
+                        can_moderate_products: false,
+                        can_approve_sellers: false,
+                        can_manage_reports: false,
+                        can_view_analytics: false,
+                        can_manage_moderators: false
+                    }
+                };
+                return updated;
+            });
             
             // Update stored user data
             const currentUser = await StorageService.getUser();
             if (currentUser) {
-                const updatedUser = { ...currentUser, ...userData };
+                const updatedUser = {
+                    ...currentUser,
+                    ...userData,
+                    permissions: userData.permissions || currentUser.permissions || {
+                        can_moderate_sellers: false,
+                        can_moderate_products: false,
+                        can_approve_sellers: false,
+                        can_manage_reports: false,
+                        can_view_analytics: false,
+                        can_manage_moderators: false
+                    }
+                };
                 await StorageService.storeUser(updatedUser);
             }
             
@@ -130,7 +194,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             throw error;
         }
     };
-
 
     return (
         <AuthContext.Provider
@@ -142,7 +205,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 register,
                 logout,
                 checkAuthStatus,
-                updateUser,  // ← ADD THIS
+                updateUser,
             }}
         >
             {children}

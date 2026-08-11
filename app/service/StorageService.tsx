@@ -36,13 +36,26 @@ class StorageService {
 
 
     async storeUser(user: any): Promise<void> {
-        try {
-            await AsyncStorage.setItem(this.USER_KEY, JSON.stringify(user));
-            console.log('User data stored');
-        } catch (error) {
-            console.error('Error storing user data:', error);
-        }
+    try {
+        // Make sure permissions exist
+        const userToStore = {
+            ...user,
+            permissions: user.permissions || {
+                can_moderate_sellers: false,
+                can_moderate_products: false,
+                can_approve_sellers: false,
+                can_manage_reports: false,
+                can_view_analytics: false,
+                can_manage_moderators: false
+            }
+        };
+        await AsyncStorage.setItem(this.USER_KEY, JSON.stringify(userToStore));
+        console.log('User data stored');
+    } catch (error) {
+        console.error('Error storing user:', error);
     }
+}
+
 
 
     async getUser(): Promise<any | null> {

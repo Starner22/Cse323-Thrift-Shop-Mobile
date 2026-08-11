@@ -35,6 +35,14 @@ export interface LoginResponse {
         name: string;
         email: string;
         role: 'Admin' | 'Moderator' | 'Seller' | 'Buyer';
+        permissions?: {
+            can_moderate_sellers: boolean;
+            can_moderate_products: boolean;
+            can_approve_sellers: boolean;
+            can_manage_reports: boolean;
+            can_view_analytics: boolean;
+            can_manage_moderators: boolean;
+        };
     };
     message?: string;
 }
@@ -84,7 +92,7 @@ class ApiService {
 
       // Handle 401 issues
       if (response.status === 401) {
-        console.log('🔒 Session expired');
+        console.log('Session expired');
         await StorageService.clearAll();
         throw new Error('Session expired. Please login again.');
       }
@@ -170,35 +178,40 @@ class ApiService {
   }
 
 
-  async getCurrentUser(): Promise<any | null> {
+async getCurrentUser(): Promise<any | null> {
     try {
-      // check local storage
-      const storedUser = await StorageService.getUser();
-      if (storedUser) {
-        return storedUser;
-      }
+        const storedUser = await StorageService.getUser();
+        if (storedUser) {
+            return storedUser;
+        }
 
-      // If not, verify with server
-      const token = await StorageService.getToken();
-      if (!token) return null;
+        const response = await this.request<any>('/auth/verify.php', {
+            method: 'POST',
+        }, true);
 
-      const response = await this.authRequest<any>('/verify.php', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response && response.valid) {
-        await StorageService.storeUser(response.user);
-        return response.user;
-      }
-      return null;
+        if (response && response.valid && response.user) {
+            // Ensure permissions exist with defaults
+            const userWithPermissions = {
+                ...response.user,
+                permissions: response.user.permissions || {
+                    can_moderate_sellers: false,
+                    can_moderate_products: false,
+                    can_approve_sellers: false,
+                    can_manage_reports: false,
+                    can_view_analytics: false,
+                    can_manage_moderators: false
+                }
+            };
+            await StorageService.storeUser(userWithPermissions);
+            return userWithPermissions;
+        }
+        return null;
     } catch (error) {
-      console.error('Error getting current user:', error);
-      return null;
+        console.error('Error getting current user:', error);
+        return null;
     }
-  }
+}
+
 
   async logout(): Promise<void> {
     await StorageService.clearAll();
@@ -327,7 +340,7 @@ class ApiService {
           const response = await this.request<any>('/seller_apply.php', {}, true);
           return {
               hasApplied: response.hasApplied || false,
-              status: response.status || null,
+              status: response.status || null,  // 'pending', 'approved', 'rejected', 'suspended'
               canEdit: response.canEdit || false,
               profile: response.profile || null,
               message: response.message || ''
@@ -535,6 +548,25 @@ class ApiService {
       }
   }
 
+    async toggleProductVisibility(productID: number, isActive: boolean): Promise<any> {
+        try {
+            console.log('Toggling product visibility:', { productID, isActive });
+            const response = await this.request<any>('/seller_products.php', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    productID, 
+                    isActive: isActive ? 1 : 0, 
+                    action: 'toggle_visibility' 
+                }),
+            }, true);
+            console.log('Toggle response:', response);
+            return response;
+        } catch (error) {
+            console.error('Error toggling product visibility:', error);
+            throw error;
+        }
+    }
+
   // ========== MODERATOR METHODS ==========
 
 	async getPendingProducts(): Promise<any[]> {
@@ -658,6 +690,56 @@ class ApiService {
 			throw error;
 		}
 	}
+
+  // ========== SELLER MANAGEMENT (Moderator) ==========
+
+  async getAllSellersForManagement(filter?: string): Promise<any[]> {
+      try {
+          let endpoint = '/moderate_current_sellers.php';
+          if (filter) {
+              endpoint += `?filter=${filter}`;
+          }
+          const result = await this.request<any[]>(endpoint, {}, true);
+          return Array.isArray(result) ? result : [];
+      } catch (error) {
+          console.error('Error fetching sellers for management:', error);
+          return [];
+      }
+  }
+
+  async suspendSeller(userID: number, reason: string): Promise<any> {
+      try {
+          return await this.request<any>('/moderate_current_sellers.php', {
+              method: 'POST',
+              body: JSON.stringify({ userID, action: 'suspend', reason }),
+          }, true);
+      } catch (error) {
+          console.error('Error suspending seller:', error);
+          throw error;
+      }
+  }
+
+
+  async restoreSeller(userID: number): Promise<any> {
+      try {
+          return await this.request<any>('/moderate_current_sellers.php', {
+              method: 'POST',
+              body: JSON.stringify({ userID, action: 'restore' }),
+          }, true);
+      } catch (error) {
+          console.error('Error restoring seller:', error);
+          throw error;
+      }
+  }
+
+  async getSellerDetails(userID: number): Promise<any> {
+      try {
+          return await this.request<any>(`/moderate_current_sellers.php?userID=${userID}`, {}, true);
+      } catch (error) {
+          console.error('Error getting seller details:', error);
+          return null;
+      }
+  }
 
 }
 

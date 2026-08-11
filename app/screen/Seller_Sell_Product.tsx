@@ -41,12 +41,33 @@ const Seller_Sell_Product = ({ navigation }: any) => {
     const [showConditionDropdown, setShowConditionDropdown] = useState(false);
     const [showImageOptions, setShowImageOptions] = useState(false);
 
+    const [isSuspended, setIsSuspended] = useState(false);
+
+
     const conditionOptions = ['Excellent', 'Good', 'Normal', 'Subpar'];
 
     useEffect(() => {
         fetchCategories();
         requestPermissions();
+        checkSellerStatus();
     }, []);
+
+    const checkSellerStatus = async () => {
+        try {
+            const response = await apiService.checkSellerStatus();
+            if (response.hasApplied && response.status === 'suspended') {
+                setIsSuspended(true);
+                Alert.alert(
+                    'Account Suspended',
+                    'Your seller account has been suspended. You cannot list new products.',
+                    [{ text: 'OK', onPress: () => navigation.goBack() }]
+                );
+            }
+        } catch (error) {
+            console.error('Error checking seller status:', error);
+        }
+    };
+
 
     const requestPermissions = async () => {
         // Request camera and gallery permissions
@@ -221,6 +242,34 @@ const Seller_Sell_Product = ({ navigation }: any) => {
         const category = categories.find(c => c.id === id);
         return category ? category.name : 'Select Category';
     };
+
+    if (isSuspended) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+                <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={28} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.storeTitle}>Sell Product</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <View style={styles.suspendedContainer}>
+                    <Ionicons name="ban-outline" size={60} color="#6C5CE7" />
+                    <Text style={styles.suspendedTitle}>Account Suspended</Text>
+                    <Text style={styles.suspendedText}>
+                        Your seller account has been suspended. You cannot list new products.
+                    </Text>
+                    <TouchableOpacity 
+                        style={styles.contactSupportButton}
+                        onPress={() => Alert.alert('Contact Support', 'Support will reach out to you shortly.')}
+                    >
+                        <Text style={styles.contactSupportButtonText}>Contact Support</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     if (!isAuthenticated) {
         return (
@@ -874,6 +923,39 @@ const styles = StyleSheet.create({
     dropdownItemTextSelected: {
         color: '#4CAF50',
         fontWeight: '600',
+    },
+
+    suspendedContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+        backgroundColor: '#f8f9fa',
+    },
+    suspendedTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 16,
+    },
+    suspendedText: {
+        fontSize: 15,
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 22,
+    },
+    contactSupportButton: {
+        marginTop: 24,
+        backgroundColor: '#6C5CE7',
+        paddingHorizontal: 40,
+        paddingVertical: 14,
+        borderRadius: 10,
+    },
+    contactSupportButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 
 });

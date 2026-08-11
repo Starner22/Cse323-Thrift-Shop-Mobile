@@ -7,13 +7,12 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    Image,
     Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
-const BuyerAccountScreen = ({ navigation }: any) => {
+const Buyer_Account_Screen = ({ navigation }: any) => {
     const { user, isAuthenticated, logout } = useAuth();
 
     const handleLogout = () => {
@@ -22,8 +21,8 @@ const BuyerAccountScreen = ({ navigation }: any) => {
             'Are you sure you want to logout?',
             [
                 { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Logout', 
+                {
+                    text: 'Logout',
                     style: 'destructive',
                     onPress: async () => {
                         await logout();
@@ -40,6 +39,10 @@ const BuyerAccountScreen = ({ navigation }: any) => {
 
     const handleChangePassword = () => {
         navigation.navigate('UserPasswordEdit');
+    };
+
+    const handleAddresses = () => {
+        navigation.navigate('CustomerAddress');
     };
 
     const handleBecomeSeller = () => {
@@ -68,7 +71,6 @@ const BuyerAccountScreen = ({ navigation }: any) => {
         return user.name.substring(0, 2).toUpperCase();
     };
 
-    // Get role color
     const getRoleColor = (role: string) => {
         switch (role) {
             case 'Admin': return '#FF6B6B';
@@ -79,7 +81,6 @@ const BuyerAccountScreen = ({ navigation }: any) => {
         }
     };
 
-    // Get role icon
     const getRoleIcon = (role: string) => {
         switch (role) {
             case 'Admin': return 'shield-checkmark-outline';
@@ -100,7 +101,7 @@ const BuyerAccountScreen = ({ navigation }: any) => {
                     <Text style={styles.notLoggedInSubtext}>
                         Please login to view your account
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.loginButton}
                         onPress={() => navigation.navigate('Login')}
                     >
@@ -145,37 +146,39 @@ const BuyerAccountScreen = ({ navigation }: any) => {
                     </Text>
                 </View>
 
-                {/* Stats Cards */}
+                {/* Stats Cards - Now with colored icons */}
                 <View style={styles.statsContainer}>
                     <TouchableOpacity style={styles.statCard} onPress={handleOrders}>
-                        <View style={styles.statIconContainer}>
+                        <View style={[styles.statIconContainer, { backgroundColor: '#e8f5e9' }]}>
                             <Ionicons name="cube-outline" size={24} color="#4CAF50" />
                         </View>
                         <Text style={styles.statLabel}>Orders</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.statCard} onPress={handleWishlist}>
-                        <View style={styles.statIconContainer}>
+                        <View style={[styles.statIconContainer, { backgroundColor: '#fce4ec' }]}>
                             <Ionicons name="heart-outline" size={24} color="#FF6B6B" />
                         </View>
                         <Text style={styles.statLabel}>Wishlist</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.statCard} onPress={handleCart}>
-                        <View style={styles.statIconContainer}>
-                            <Ionicons name="cart-outline" size={24} color="#3498DB" />
+                        <View style={[styles.statIconContainer, { backgroundColor: '#e3f2fd' }]}>
+                            <Ionicons name="cart-outline" size={24} color="#2196F3" />
                         </View>
                         <Text style={styles.statLabel}>Cart Items</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Account Settings */}
+                {/* Account Settings - With colored icons */}
                 <View style={styles.settingsContainer}>
                     <Text style={styles.settingsTitle}>Account Settings</Text>
 
                     <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
                         <View style={styles.settingLeft}>
-                            <Ionicons name="person-outline" size={22} color="#555" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="person-outline" size={20} color="#4CAF50" />
+                            </View>
                             <Text style={styles.settingText}>Edit Profile</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -183,15 +186,29 @@ const BuyerAccountScreen = ({ navigation }: any) => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={handleChangePassword}>
                         <View style={styles.settingLeft}>
-                            <Ionicons name="lock-closed-outline" size={22} color="#555" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="lock-closed-outline" size={20} color="#FF9800" />
+                            </View>
                             <Text style={styles.settingText}>Change Password</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.settingItem} onPress={handleAddresses}>
+                        <View style={styles.settingLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="location-outline" size={20} color="#2196F3" />
+                            </View>
+                            <Text style={styles.settingText}>My Addresses</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.settingItem} onPress={handleBecomeSeller}>
                         <View style={styles.settingLeft}>
-                            <Ionicons name="storefront-outline" size={22} color="#555" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="storefront-outline" size={20} color="#4CAF50" />
+                            </View>
                             <Text style={styles.settingText}>Become a Seller</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -199,7 +216,9 @@ const BuyerAccountScreen = ({ navigation }: any) => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={handleOrders}>
                         <View style={styles.settingLeft}>
-                            <Ionicons name="receipt-outline" size={22} color="#555" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="receipt-outline" size={20} color="#4CAF50" />
+                            </View>
                             <Text style={styles.settingText}>My Orders</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -207,7 +226,9 @@ const BuyerAccountScreen = ({ navigation }: any) => {
 
                     <TouchableOpacity style={styles.settingItem} onPress={handleWishlist}>
                         <View style={styles.settingLeft}>
-                            <Ionicons name="heart-outline" size={22} color="#555" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
+                                <Ionicons name="heart-outline" size={20} color="#FF6B6B" />
+                            </View>
                             <Text style={styles.settingText}>My Wishlist</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -248,6 +269,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
+        flex: 1,
+        textAlign: 'center',
     },
     // Not logged in
     notLoggedInContainer: {
@@ -348,24 +371,20 @@ const styles = StyleSheet.create({
     },
     statCard: {
         alignItems: 'center',
+        flex: 1,
     },
     statIconContainer: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#f0f0f0',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 4,
     },
-    statNumber: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-    },
     statLabel: {
         fontSize: 12,
         color: '#999',
+        textAlign: 'center',
     },
     // Settings
     settingsContainer: {
@@ -392,12 +411,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    menuIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
     settingText: {
         fontSize: 16,
         color: '#333',
-        marginLeft: 12,
     },
-    // Logout
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -417,4 +442,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default BuyerAccountScreen;
+export default Buyer_Account_Screen;

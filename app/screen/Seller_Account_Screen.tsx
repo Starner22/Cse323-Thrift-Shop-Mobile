@@ -101,6 +101,10 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('UserPasswordEdit');
     };
 
+    const handleAddresses = () => {
+        navigation.navigate('CustomerAddress');
+    };
+
     const handleMyOrders = () => {
         Alert.alert('My Orders', 'Orders page coming soon!');
     };
@@ -355,6 +359,16 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                                 <Ionicons name="person-outline" size={22} color="#4CAF50" />
                             </View>
                             <Text style={styles.menuText}>Edit Profile</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleAddresses}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="location-outline" size={22} color="#2196F3" />
+                            </View>
+                            <Text style={styles.menuText}>My Addresses</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>

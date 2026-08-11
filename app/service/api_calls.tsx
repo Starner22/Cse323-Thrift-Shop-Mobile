@@ -741,6 +741,54 @@ async getCurrentUser(): Promise<any | null> {
       }
   }
 
+  // ========== ADDRESS METHODS ==========
+
+  async getAddresses(): Promise<any> {
+      try {
+          return await this.request<any>('/customer_address.php', {}, true);
+      } catch (error) {
+          console.error('Error fetching addresses:', error);
+          return { success: false, addresses: [] };
+      }
+  }
+
+  async addAddress(addressData: any): Promise<any> {
+      try {
+          return await this.request<any>('/customer_address.php', {
+              method: 'POST',
+              body: JSON.stringify(addressData),
+          }, true);
+      } catch (error) {
+          console.error('Error adding address:', error);
+          throw error;
+      }
+  }
+
+
+  async updateAddress(addressID: number, addressData: any): Promise<any> {
+      try {
+          return await this.request<any>('/customer_address.php', {
+              method: 'PUT',
+              body: JSON.stringify({ addressID, ...addressData }),
+          }, true);
+      } catch (error) {
+          console.error('Error updating address:', error);
+          throw error;
+      }
+  }
+
+  async deleteAddress(addressID: number): Promise<any> {
+      try {
+          return await this.request<any>('/customer_address.php', {
+              method: 'DELETE',
+              body: JSON.stringify({ addressID }),
+          }, true);
+      } catch (error) {
+          console.error('Error deleting address:', error);
+          throw error;
+      }
+  }
+
 }
 
 export const apiService = new ApiService();

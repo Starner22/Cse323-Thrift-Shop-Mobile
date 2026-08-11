@@ -31,7 +31,11 @@ import Moderator_Account_Screen from './app/screen/Moderator_Account_Screen';
 import Moderate_Pending_Products from './app/screen/Moderate_Pending_Products';
 import Moderate_Pending_Sellers from './app/screen/Moderate_Pending_Sellers';
 import Moderate_Current_Products from './app/screen/Moderate_Current_Products';
-
+import Moderate_Current_Sellers from './app/screen/Moderate_Current_Sellers';
+import Customer_Address from './app/screen/Customer_Address';
+import Customer_Add_Address from './app/screen/Customer_Add_Address';
+import Customer_Set_Default_Address from './app/screen/Customer_Set_Default_Address';
+import Customer_Edit_Address from './app/screen/Customer_Edit_Address';
 
 const SellScreen = () => null;
 const AlertsScreen = () => null;
@@ -83,6 +87,11 @@ function AppNavigator() {
       <Stack.Screen name="ModeratePendingProducts" component={Moderate_Pending_Products} />
       <Stack.Screen name="ModeratePendingSellers" component={Moderate_Pending_Sellers} />
       <Stack.Screen name="ModerateCurrentProducts" component={Moderate_Current_Products} />
+      <Stack.Screen name="CustomerAddress" component={Customer_Address} />
+      <Stack.Screen name="CustomerAddAddress" component={Customer_Add_Address} />
+      <Stack.Screen name="ModerateCurrentSellers" component={Moderate_Current_Sellers} />
+      <Stack.Screen name="CustomerSetDefaultAddress" component={Customer_Set_Default_Address} />
+      <Stack.Screen name="CustomerEditAddress" component={Customer_Edit_Address} />
     </Stack.Navigator>
   );
 }

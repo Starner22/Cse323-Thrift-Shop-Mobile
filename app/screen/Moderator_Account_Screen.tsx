@@ -34,18 +34,16 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         totalSellers: 0
     });
 
-    // ============================================================
-    // PERMISSION CHECKS - Read from user object
-    // ============================================================
     const canModerateSellers = user?.permissions?.can_moderate_sellers || false;
     const canModerateProducts = user?.permissions?.can_moderate_products || false;
-    const canApproveSellers = user?.permissions?.can_approve_sellers || false;
+    const canApproveNewSellers = user?.permissions?.can_approve_new_sellers || false;
+    const canApproveNewProducts = user?.permissions?.can_approve_new_products || false;
     const canManageReports = user?.permissions?.can_manage_reports || false;
     const canViewAnalytics = user?.permissions?.can_view_analytics || false;
     const canManageModerators = user?.permissions?.can_manage_moderators || false;
-
-    // If user is Admin, they have all permissions
     const isAdmin = user?.role === 'Admin';
+
+    
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -56,8 +54,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
     const fetchModStats = async () => {
         try {
             setLoading(true);
-            // You'll implement these API calls later
-            // For now, using placeholder data
+            // placeholder
             setStats({
                 pendingProducts: 5,
                 totalProducts: 120,
@@ -96,15 +93,12 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         );
     };
 
-    // ============================================================
-    // PERMISSION-BASED HANDLERS
-    // ============================================================
 
     const handlePendingProducts = () => {
-        if (!canModerateProducts && !isAdmin) {
+        if (!canApproveNewProducts && !isAdmin) {
             Alert.alert(
                 'Access Denied',
-                'You don\'t have permission to moderate products.\n\nPlease contact your administrator.'
+                'You don\'t have permission to approve products.\n\nPlease contact your administrator.'
             );
             return;
         }
@@ -123,7 +117,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
     };
 
     const handlePendingSellers = () => {
-        if (!canApproveSellers && !isAdmin) {
+        if (!canApproveNewSellers && !isAdmin) {
             Alert.alert(
                 'Access Denied',
                 'You don\'t have permission to approve sellers.\n\nPlease contact your administrator.'
@@ -280,26 +274,6 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
                     <Text style={styles.userSince}>
                         Member since {user?.registration_date ? new Date(user.registration_date).toLocaleDateString() : 'N/A'}
                     </Text>
-                    
-                    {/* Show if user has limited permissions */}
-                    {user?.role !== 'Admin' && (
-                        <View style={styles.permissionBadge}>
-                            <Ionicons name="information-circle" size={14} color="#3498DB" />
-                            <Text style={styles.permissionBadgeText}>
-                                {canModerateProducts || canApproveSellers || canModerateSellers 
-                                    ? 'Limited Permissions' 
-                                    : 'View Only'}
-                            </Text>
-                        </View>
-                    )}
-                    {user?.role === 'Admin' && (
-                        <View style={[styles.permissionBadge, styles.adminBadge]}>
-                            <Ionicons name="star" size={14} color="#FFD700" />
-                            <Text style={[styles.permissionBadgeText, { color: '#FFD700' }]}>
-                                Full Access
-                            </Text>
-                        </View>
-                    )}
                 </View>
 
                 {/* Stats Cards */}
@@ -369,16 +343,16 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
                         <TouchableOpacity 
                             style={styles.sellerStatItem} 
                             onPress={handlePendingSellers}
-                            disabled={!canApproveSellers && !isAdmin}
+                            disabled={!canApproveNewProducts && !isAdmin}
                         >
-                            <View style={[styles.sellerStatIcon, { backgroundColor: canApproveSellers || isAdmin ? '#e3f2fd' : '#f0f0f0' }]}>
-                                <Ionicons name="people-outline" size={22} color={canApproveSellers || isAdmin ? '#2196F3' : '#ccc'} />
+                            <View style={[styles.sellerStatIcon, { backgroundColor: canApproveNewProducts || isAdmin ? '#e3f2fd' : '#f0f0f0' }]}>
+                                <Ionicons name="people-outline" size={22} color={canApproveNewProducts || isAdmin ? '#2196F3' : '#ccc'} />
                             </View>
                             <View>
-                                <Text style={[styles.sellerStatNumber, { color: canApproveSellers || isAdmin ? '#333' : '#ccc' }]}>
+                                <Text style={[styles.sellerStatNumber, { color: canApproveNewProducts || isAdmin ? '#333' : '#ccc' }]}>
                                     {stats.pendingSellers}
                                 </Text>
-                                <Text style={[styles.sellerStatLabel, { color: canApproveSellers || isAdmin ? '#999' : '#ccc' }]}>
+                                <Text style={[styles.sellerStatLabel, { color: canApproveNewProducts || isAdmin ? '#999' : '#ccc' }]}>
                                     Pending Sellers
                                 </Text>
                             </View>
@@ -448,23 +422,23 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
 
                     {/* Sellers Section */}
                     <TouchableOpacity 
-                        style={[styles.menuItem, !canApproveSellers && !isAdmin && styles.menuItemDisabled]} 
+                        style={[styles.menuItem, !canApproveNewProducts && !isAdmin && styles.menuItemDisabled]} 
                         onPress={handlePendingSellers}
-                        disabled={!canApproveSellers && !isAdmin}
+                        disabled={!canApproveNewProducts && !isAdmin}
                     >
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
-                                <Ionicons name="people-outline" size={22} color={canApproveSellers || isAdmin ? '#2196F3' : '#ccc'} />
+                                <Ionicons name="people-outline" size={22} color={canApproveNewProducts || isAdmin ? '#2196F3' : '#ccc'} />
                             </View>
-                            <Text style={[styles.menuText, !canApproveSellers && !isAdmin && styles.menuTextDisabled]}>
+                            <Text style={[styles.menuText, !canApproveNewProducts && !isAdmin && styles.menuTextDisabled]}>
                                 Pending Sellers
                             </Text>
                         </View>
                         <View style={styles.menuRight}>
-                            {canApproveSellers && stats.pendingSellers > 0 && (
+                            {canApproveNewProducts && stats.pendingSellers > 0 && (
                                 <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{stats.pendingSellers}</Text>
                             )}
-                            <Ionicons name="chevron-forward" size={20} color={canApproveSellers || isAdmin ? '#ccc' : '#e0e0e0'} />
+                            <Ionicons name="chevron-forward" size={20} color={canApproveNewProducts || isAdmin ? '#ccc' : '#e0e0e0'} />
                         </View>
                     </TouchableOpacity>
 

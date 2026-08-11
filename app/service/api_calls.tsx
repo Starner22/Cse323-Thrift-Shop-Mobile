@@ -38,7 +38,8 @@ export interface LoginResponse {
         permissions?: {
             can_moderate_sellers: boolean;
             can_moderate_products: boolean;
-            can_approve_sellers: boolean;
+            can_approve_new_sellers: boolean;
+            can_approve_new_products: boolean;
             can_manage_reports: boolean;
             can_view_analytics: boolean;
             can_manage_moderators: boolean;
@@ -46,6 +47,7 @@ export interface LoginResponse {
     };
     message?: string;
 }
+
 
 export interface RegisterResponse {
     success: boolean;
@@ -254,13 +256,8 @@ async getCurrentUser(): Promise<any | null> {
   }
 
   async getProductById(productId: number): Promise<Product | null> {
-    try {
       const result = await this.request<Product>(`/product.php?id=${productId}`);
       return result || null;
-    } catch (error) {
-      console.error('Error fetching product by ID:', error);
-      return null;
-    }
   }
 
   async searchProducts(query: string): Promise<Product[]> {

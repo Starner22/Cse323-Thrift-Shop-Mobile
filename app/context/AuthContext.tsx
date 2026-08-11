@@ -57,11 +57,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         permissions: userData.permissions || {
                             can_moderate_sellers: false,
                             can_moderate_products: false,
-                            can_approve_sellers: false,
+                            can_approve_new_sellers: false,
+                            can_approve_new_products: false,
                             can_manage_reports: false,
                             can_view_analytics: false,
                             can_manage_moderators: false
                         }
+
                     };
                     setUser(userWithPermissions);
                     await StorageService.storeUser(userWithPermissions);
@@ -93,7 +95,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     permissions: response.user.permissions || {
                         can_moderate_sellers: false,
                         can_moderate_products: false,
-                        can_approve_sellers: false,
+                        can_approve_new_sellers: false,
+                        can_approve_new_products: false,
                         can_manage_reports: false,
                         can_view_analytics: false,
                         can_manage_moderators: false
@@ -105,7 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 await StorageService.storeUser(userWithPermissions);
                 setIsAuthenticated(true);
                 
-                console.log('✅ Login successful with permissions:', userWithPermissions.permissions);
+                console.log('Login successful with permissions:', userWithPermissions.permissions);
                 return true;
             } else {
                 Alert.alert('Login Failed', response.message || 'Invalid credentials');
@@ -161,7 +164,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     permissions: userData.permissions || prevUser?.permissions || {
                         can_moderate_sellers: false,
                         can_moderate_products: false,
-                        can_approve_sellers: false,
+                        can_approve_new_sellers: false,
+                        can_approve_new_products: false,
                         can_manage_reports: false,
                         can_view_analytics: false,
                         can_manage_moderators: false
@@ -179,7 +183,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     permissions: userData.permissions || currentUser.permissions || {
                         can_moderate_sellers: false,
                         can_moderate_products: false,
-                        can_approve_sellers: false,
+                        can_approve_new_sellers: false,
+                        can_approve_new_products: false,
                         can_manage_reports: false,
                         can_view_analytics: false,
                         can_manage_moderators: false

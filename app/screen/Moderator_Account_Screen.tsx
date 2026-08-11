@@ -146,7 +146,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
             );
             return;
         }
-        Alert.alert('Moderation History', 'History coming soon!');
+        navigation.navigate('ModerationHistory');
     };
 
     const handleReports = () => {

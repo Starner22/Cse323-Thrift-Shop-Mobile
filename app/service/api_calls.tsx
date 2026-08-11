@@ -786,6 +786,29 @@ async getCurrentUser(): Promise<any | null> {
       }
   }
 
+  // ========== MODERATION HISTORY ==========
+
+  async getModerationHistory(limit: number = 50, offset: number = 0, action?: string, category?: string): Promise<any> {
+      try {
+          let endpoint = `/moderation_history.php?limit=${limit}&offset=${offset}`;
+          if (action) {
+              endpoint += `&action=${action}`;
+          }
+          if (category) {
+              endpoint += `&category=${category}`;
+          }
+          console.log('Fetching moderation history:', endpoint);
+          const response = await this.request<any>(endpoint, {}, true);
+          console.log('Moderation history response:', response);
+          return response;
+      } catch (error) {
+          console.error('Error fetching moderation history:', error);
+          // Return empty data instead of throwing
+          return { success: false, data: [], pagination: { total: 0 } };
+      }
+  }
+
+
 }
 
 export const apiService = new ApiService();

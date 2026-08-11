@@ -189,6 +189,12 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
         const isProcessing = processingId === item.userID;
         const isSuspended = item.approval_status === 'suspended';
 
+        // Get initials safely
+        const getInitials = (name: string) => {
+            if (!name) return '??';
+            return name.substring(0, 2).toUpperCase();
+        };
+
         return (
             <View style={[styles.sellerCard, isSuspended && styles.suspendedCard]}>
                 <TouchableOpacity 
@@ -199,7 +205,7 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: isSuspended ? '#6C5CE7' : '#4CAF50' }]}>
                             <Text style={styles.avatarText}>
-                                {item.business_name.substring(0, 2).toUpperCase()}
+                                {getInitials(item.business_name)}
                             </Text>
                         </View>
                         {isSuspended && (
@@ -211,12 +217,12 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
 
                     <View style={styles.sellerInfo}>
                         <Text style={styles.businessName} numberOfLines={1}>
-                            {item.business_name}
+                            {item.business_name || 'Unnamed Business'}
                         </Text>
-                        <Text style={styles.sellerName}>{item.name}</Text>
+                        <Text style={styles.sellerName}>{item.name || 'Unknown Seller'}</Text>
                         <View style={styles.sellerMeta}>
                             <Ionicons name="mail-outline" size={14} color="#999" />
-                            <Text style={styles.sellerMetaText}>{item.email}</Text>
+                            <Text style={styles.sellerMetaText}>{item.email || 'No email'}</Text>
                         </View>
                         <View style={styles.sellerStats}>
                             <Text style={styles.statText}>📦 {item.product_count || 0} products</Text>
@@ -411,7 +417,7 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
                                     <View style={styles.modalAvatarContainer}>
                                         <View style={[styles.modalAvatar, { backgroundColor: '#4CAF50' }]}>
                                             <Text style={styles.modalAvatarText}>
-                                                {selectedSeller.business_name.substring(0, 2).toUpperCase()}
+                                                {selectedSeller.business_name ? selectedSeller.business_name.substring(0, 2).toUpperCase() : '??'}
                                             </Text>
                                         </View>
                                         <Text style={styles.modalBusinessName}>{selectedSeller.business_name}</Text>

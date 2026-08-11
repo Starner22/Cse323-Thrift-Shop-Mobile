@@ -1,6 +1,6 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
 header("Content-Type: application/json");
 
@@ -43,9 +43,7 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $status = isset($_GET['status']) ? $_GET['status'] : null;
         
-        $sql = "SELECT 
-                    p.*, 
-                    c.name as categoryName
+        $sql = "SELECT p.*, c.name as categoryName
                 FROM product p
                 LEFT JOIN categories c ON p.categoryID = c.categoryID
                 WHERE p.sellerID = ?";
@@ -71,11 +69,82 @@ try {
             $product['quantity'] = intval($product['quantity']);
             $product['productID'] = intval($product['productID']);
             $product['categoryID'] = $product['categoryID'] ? intval($product['categoryID']) : null;
+            $product['seller_active'] = isset($product['seller_active']) ? intval($product['seller_active']) : 1;
+            $product['can_display'] = isset($product['can_display']) ? intval($product['can_display']) : 1;
         }
+
         
         echo json_encode($products);
         exit();
     }
+
+    // ============================================================
+    // POST: Toggle product visibility (seller_active)
+    // ============================================================
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $productID = intval($input['productID'] ?? 0);
+        $isActive = isset($input['isActive']) ? intval($input['isActive']) : 1;
+        $action = $input['action'] ?? '';
+        
+        error_log("=== Toggle Product Visibility ===");
+        error_log("Product ID: $productID");
+        error_log("Is Active: $isActive");
+        error_log("Action: $action");
+        
+        if (!$productID) {
+            echo json_encode(['success' => false, 'message' => 'Product ID required']);
+            exit();
+        }
+        
+        // Verify product belongs to this seller
+        $stmt = $conn->prepare("SELECT sellerID, status, seller_active FROM product WHERE productID = ?");
+        $stmt->execute([$productID]);
+        $product = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$product) {
+            echo json_encode(['success' => false, 'message' => 'Product not found']);
+            exit();
+        }
+        
+        if ($product['sellerID'] != $userID) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit();
+        }
+        
+        // Only approved products can be hidden/shown by seller
+        if ($product['status'] !== 'approved') {
+            echo json_encode(['success' => false, 'message' => 'Only approved products can be toggled']);
+            exit();
+        }
+        
+        // Toggle visibility - UPDATE seller_active
+        if ($action === 'toggle_visibility') {
+            $isActive = isset($input['isActive']) ? intval($input['isActive']) : 1;
+            
+            error_log("Updating seller_active to: $isActive for product: $productID");
+            
+            $stmt = $conn->prepare("UPDATE product SET seller_active = ? WHERE productID = ?");
+            $result = $stmt->execute([$isActive, $productID]);
+            
+            if ($result) {
+                error_log("Seller_active updated successfully");
+                echo json_encode([
+                    'success' => true,
+                    'message' => $isActive ? 'Product is now visible to buyers' : 'Product is now hidden from buyers',
+                    'isActive' => $isActive
+                ]);
+            } else {
+                error_log("Failed to update seller_active");
+                echo json_encode(['success' => false, 'message' => 'Failed to update product visibility']);
+            }
+            exit();
+        }
+        
+        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        exit();
+    }
+
 
     // ============================================================
     // DELETE: Delete a product
@@ -123,7 +192,9 @@ try {
         exit();
     }
 
-    // PUT: update
+    // ============================================================
+    // PUT: Update product
+    // ============================================================
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);

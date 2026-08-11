@@ -26,14 +26,19 @@ if ($conn->connect_error) {
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : null;
 $includeCount = isset($_GET['count']) ? $_GET['count'] === 'true' : false;
 
-// Build the query - get categories with product counts
+// ============================================================
+// BUILD THE QUERY WITH ALL VISIBILITY FILTERS
+// ============================================================
 $sql = "SELECT 
             c.categoryID, 
             c.name, 
             c.image_path,
             COUNT(p.productID) as product_count
         FROM categories c
-        LEFT JOIN product p ON c.categoryID = p.categoryID AND p.status = 'approved'
+        LEFT JOIN product p ON c.categoryID = p.categoryID 
+            AND p.status = 'approved' 
+            AND p.can_display = 1 
+            AND p.seller_active = 1
         GROUP BY c.categoryID
         ORDER BY c.name";
 

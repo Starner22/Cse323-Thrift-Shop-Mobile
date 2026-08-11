@@ -27,12 +27,17 @@ $categoryID = isset($_GET['category']) ? intval($_GET['category']) : null;
 $productID = isset($_GET['id']) ? intval($_GET['id']) : null;
 $search = isset($_GET['search']) ? $_GET['search'] : null;
 
-// Build the query
+// ============================================================
+// BUILD THE QUERY WITH VISIBILITY FILTERS
+// ============================================================
 $sql = "SELECT 
-            p.*, c.name as categoryName 
+            p.*, 
+            c.name as categoryName 
         FROM product p 
         LEFT JOIN categories c ON p.categoryID = c.categoryID 
-        WHERE p.status = 'approved'";
+        WHERE p.status = 'approved' 
+        AND p.can_display = 1 
+        AND p.seller_active = 1";
 
 if ($categoryID) {
     $sql .= " AND p.categoryID = " . intval($categoryID);
@@ -76,7 +81,9 @@ while ($row = $result->fetch_assoc()) {
         'sellerID' => intval($row['sellerID']),
         'status' => $row['status'],
         'created_at' => $row['created_at'],
-        'updated_at' => $row['updated_at']
+        'updated_at' => $row['updated_at'],
+        'seller_active' => isset($row['seller_active']) ? intval($row['seller_active']) : 1,
+        'can_display' => isset($row['can_display']) ? intval($row['can_display']) : 1
     ];
 }
 

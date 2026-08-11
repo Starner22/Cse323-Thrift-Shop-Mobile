@@ -78,10 +78,7 @@ try {
         echo json_encode($products);
         exit();
     }
-
-    // ============================================================
-    // POST: Approve or reject product
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -118,15 +115,18 @@ try {
         $stmt = $conn->prepare("UPDATE product SET status = ? WHERE productID = ?");
         $stmt->execute([$newStatus, $productID]);
         
-        // If rejected, store reason
         if ($action === 'reject' && $reason) {
-            // You can add a rejection_reason column later
-            // For now, we'll log it
             error_log("Product $productID rejected. Reason: $reason");
         }
+        require_once __DIR__ . '/../helpers/log_helper.php';
         
-        echo json_encode([
-            'success' => true,
+        if ($action === 'approve') {
+            logProductAction($userID, 'approve_product', $productID, null);
+        } else {
+            logProductAction($userID, 'reject_product', $productID, $reason);
+        }
+        
+        echo json_encode(['success' => true,
             'message' => 'Product ' . ($action === 'approve' ? 'approved' : 'rejected'),
             'status' => $newStatus
         ]);

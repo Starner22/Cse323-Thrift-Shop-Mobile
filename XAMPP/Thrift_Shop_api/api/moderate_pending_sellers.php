@@ -121,20 +121,21 @@ try {
             // Update user role to Seller
             $stmt = $conn->prepare("UPDATE user SET role = 'Seller' WHERE userID = ?");
             $stmt->execute([$sellerUserID]);
+
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            logSellerAction($userID, 'approve_seller', $sellerUserID, null);
+
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Seller approved successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Seller approved successfully']);
         } else {
             // Reject - update status only, keep role as Buyer
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'rejected', rejected_reason = ? WHERE userID = ?");
             $stmt->execute([$reason, $sellerUserID]);
+
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            logSellerAction($userID, 'reject_seller', $sellerUserID, $reason);
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Seller rejected'
-            ]);
+            echo json_encode(['success' => true,'message' => 'Seller rejected']);
         }
         exit();
     }

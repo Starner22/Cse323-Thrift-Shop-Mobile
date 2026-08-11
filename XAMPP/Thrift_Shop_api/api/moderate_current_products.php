@@ -131,6 +131,11 @@ try {
             $canDisplay = intval($input['canDisplay'] ?? 0);
             $stmt = $conn->prepare("UPDATE product SET can_display = ?, last_moderated_at = NOW() WHERE productID = ?");
             $stmt->execute([$canDisplay, $productID]);
+
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            $actionName = $canDisplay ? 'show_product' : 'hide_product';
+            logProductAction($userID, $actionName, $productID, null);
+
             
             echo json_encode([
                 'success' => true,
@@ -159,6 +164,10 @@ try {
             
             $stmt = $conn->prepare("UPDATE product SET name = ?, description = ?, price = ?, quantity = ?, `condition` = ?, last_moderated_at = NOW() WHERE productID = ?");
             $stmt->execute([$name, $description, $price, $quantity, $condition, $productID]);
+            
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            $details = json_encode(['updated_fields' => ['name', 'description', 'price', 'quantity', 'condition']]);
+            logProductAction($userID, 'edit_product', $productID, $details);
             
             echo json_encode([
                 'success' => true,
@@ -194,10 +203,11 @@ try {
             $stmt = $conn->prepare("UPDATE product SET moderation_notes = ?, last_moderated_at = NOW() WHERE productID = ?");
             $stmt->execute([$note, $productID]);
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Note added successfully'
-            ]);
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            logProductAction($userID, 'add_note', $productID, $note);
+
+
+            echo json_encode(['success' => true,'message' => 'Note added successfully']);
             exit();
         }
         

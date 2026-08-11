@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../helpers/jwt_helper.php';
+require_once __DIR__ . '/../helpers/log_helper.php';
 
 try {
     $headers = getallheaders();
@@ -80,7 +81,7 @@ try {
             $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
             $seller['product_count'] = intval($productCount['count']);
             
-            // Get total sales (simplified - you can expand this)
+            // Get total sales (simplified)
             $seller['total_sales'] = 0;
             
             echo json_encode($seller);
@@ -89,8 +90,23 @@ try {
         
         // Get all sellers
         $sql = "SELECT 
-                    u.userID, u.name, u.email, u.phone, u.address, u.role,
-                    sp.*
+                    u.userID, 
+                    u.name, 
+                    u.email, 
+                    u.phone, 
+                    u.address, 
+                    u.role,
+                    sp.sellerID,
+                    sp.business_name,
+                    sp.business_address,
+                    sp.business_phone,
+                    sp.business_email,
+                    sp.tax_id,
+                    sp.bank_account,
+                    sp.approval_status,
+                    sp.rejected_reason,
+                    sp.created_at,
+                    sp.updated_at
                 FROM user u
                 INNER JOIN seller_profile sp ON u.userID = sp.userID";
         
@@ -154,6 +170,9 @@ try {
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'suspended', rejected_reason = ? WHERE userID = ?");
             $stmt->execute([$reason, $sellerUserID]);
             
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            logSellerAction($userID, 'suspend_seller', $sellerUserID, $reason);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Seller suspended successfully'
@@ -162,6 +181,9 @@ try {
             // Restore - set back to approved
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'approved', rejected_reason = NULL WHERE userID = ?");
             $stmt->execute([$sellerUserID]);
+
+            require_once __DIR__ . '/../helpers/log_helper.php';
+            logSellerAction($userID, 'restore_seller', $sellerUserID, null);            
             
             echo json_encode([
                 'success' => true,
@@ -174,10 +196,10 @@ try {
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 
 } catch (PDOException $e) {
-    error_log("Manage sellers PDO error: " . $e->getMessage());
+    error_log("Moderate current sellers PDO error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred']);
 } catch (Exception $e) {
-    error_log("Manage sellers error: " . $e->getMessage());
+    error_log("Moderate current sellers error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>

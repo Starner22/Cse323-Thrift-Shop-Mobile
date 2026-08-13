@@ -1,7 +1,7 @@
 import StorageService from './StorageService';
 
-const API_URL = `http://192.168.0.107/Thrift_Shop_api/api`;
-const AUTH_URL = `http://192.168.0.107/Thrift_Shop_api/auth`;
+const API_URL = `http://172.20.144.60/Thrift_Shop_api/api`;
+const AUTH_URL = `http://172.20.144.60/Thrift_Shop_api/auth`;
 
 // Types
 export interface Category {
@@ -808,6 +808,179 @@ async getCurrentUser(): Promise<any | null> {
       }
   }
 
+  // ========== ADMIN - USER MANAGEMENT ==========
+
+  async getUsers(page: number = 1, limit: number = 20, search: string = '', role: string = ''): Promise<any> {
+      try {
+          let endpoint = `/admin_manage_user.php?page=${page}&limit=${limit}`;
+          if (search) {
+              endpoint += `&search=${encodeURIComponent(search)}`;
+          }
+          if (role) {
+              endpoint += `&role=${role}`;
+          }
+          return await this.request<any>(endpoint, {}, true);
+      } catch (error) {
+          console.error('Error fetching users:', error);
+          return { success: false, data: [], pagination: { total: 0 } };
+      }
+  }
+
+  async getUserDetails(userID: number): Promise<any> {
+      try {
+          return await this.request<any>(`/admin_manage_user.php?userID=${userID}`, {}, true);
+      } catch (error) {
+          console.error('Error fetching user details:', error);
+          return { success: false };
+      }
+  }
+
+  async adminUpdateUser(userID: number, data: any): Promise<any> {
+      try {
+          return await this.request<any>('/admin_manage_user.php', {
+              method: 'PUT',
+              body: JSON.stringify({ userID, ...data }),
+          }, true);
+      } catch (error) {
+          console.error('Error updating user:', error);
+          throw error;
+      }
+  }
+
+  async adminDeleteUser(userID: number): Promise<any> {
+      try {
+          return await this.request<any>('/admin_manage_user.php', {
+              method: 'DELETE',
+              body: JSON.stringify({ userID }),
+          }, true);
+      } catch (error) {
+          console.error('Error deleting user:', error);
+          throw error;
+      }
+  }
+
+  // ========== ADMIN - SELLER MANAGEMENT ==========
+
+  async getSellersForAdmin(page: number = 1, limit: number = 20, search: string = '', filter: string = 'all'): Promise<any> {
+      try {
+          let endpoint = `/admin_manage_seller.php?page=${page}&limit=${limit}`;
+          if (search) {
+              endpoint += `&search=${encodeURIComponent(search)}`;
+          }
+          if (filter !== 'all') {
+              endpoint += `&filter=${filter}`;
+          }
+          return await this.request<any>(endpoint, {}, true);
+      } catch (error) {
+          console.error('Error fetching sellers:', error);
+          return { success: false, data: [], pagination: { total: 0 } };
+      }
+  }
+
+  async getSellerDetailsForAdmin(sellerID: number): Promise<any> {
+      try {
+          return await this.request<any>(`/admin_manage_seller.php?sellerID=${sellerID}`, {}, true);
+      } catch (error) {
+          console.error('Error fetching seller details:', error);
+          return { success: false };
+      }
+  }
+
+  async adminSellerAction(data: { userID: number; action: 'approve' | 'reject' | 'suspend' | 'restore'; reason?: string }): Promise<any> {
+      try {
+          return await this.request<any>('/admin_manage_seller.php', {
+              method: 'POST',
+              body: JSON.stringify(data),
+          }, true);
+      } catch (error) {
+          console.error('Error performing seller action:', error);
+          throw error;
+      }
+  }
+
+  async adminUpdateSeller(userID: number, data: any): Promise<any> {
+      try {
+          return await this.request<any>('/admin_manage_seller.php', {
+              method: 'PUT',
+              body: JSON.stringify({ userID, ...data }),
+          }, true);
+      } catch (error) {
+          console.error('Error updating seller:', error);
+          throw error;
+      }
+  }
+
+  async adminDeleteSeller(userID: number): Promise<any> {
+      try {
+          return await this.request<any>('/admin_manage_seller.php', {
+              method: 'DELETE',
+              body: JSON.stringify({ userID }),
+          }, true);
+      } catch (error) {
+          console.error('Error deleting seller:', error);
+          throw error;
+      }
+  }
+
+  // ========== ADMIN - MODERATOR MANAGEMENT ==========
+
+    async getModeratorsForAdmin(page: number = 1, limit: number = 20, search: string = ''): Promise<any> {
+        try {
+            let endpoint = `/api/admin_manage_moderators.php?page=${page}&limit=${limit}`;
+            if (search) {
+                endpoint += `&search=${encodeURIComponent(search)}`;
+            }
+            return await this.request<any>(endpoint, {}, true);
+        } catch (error) {
+            console.error('Error fetching moderators:', error);
+            return { success: false, data: [], pagination: { total: 0 } };
+        }
+    }
+
+    async getModeratorDetailsForAdmin(moderatorID: number): Promise<any> {
+        try {
+            return await this.request<any>(`/api/admin_manage_moderators.php?moderatorID=${moderatorID}`, {}, true);
+        } catch (error) {
+            console.error('Error fetching moderator details:', error);
+            return { success: false };
+        }
+    }
+
+    async adminAddModerator(userID: number, permissions: any): Promise<any> {
+        try {
+            return await this.request<any>('/api/admin_manage_moderators.php', {
+                method: 'POST',
+                body: JSON.stringify({ userID, permissions }),
+            }, true);
+        } catch (error) {
+            console.error('Error adding moderator:', error);
+            throw error;
+        }
+    }
+
+    async adminUpdateModeratorPermissions(userID: number, permissions: any): Promise<any> {
+        try {
+            return await this.request<any>('/api/admin_manage_moderators.php', {
+                method: 'PUT',
+                body: JSON.stringify({ userID, permissions }),
+            }, true);
+        } catch (error) {
+            console.error('Error updating moderator permissions:', error);
+            throw error;
+        }
+    }
+
+    async adminRemoveModerator(userID: number): Promise<any> {
+        try {
+            return await this.request<any>('/api/admin_manage_moderators.php', {
+                method: 'DELETE',
+                body: JSON.stringify({ userID }),
+            }, true);
+        } catch (error) {
+            console.error('Error removing moderator:', error);
+            throw error;
+        }
+    }
 
 }
 

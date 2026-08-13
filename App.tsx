@@ -38,7 +38,8 @@ import Customer_Set_Default_Address from './app/screen/Customer_Set_Default_Addr
 import Customer_Edit_Address from './app/screen/Customer_Edit_Address';
 import Moderation_History_Screen from './app/screen/Moderation_History_Screen';
 import Admin_Account_Screen from './app/screen/Admin_Account_Screen';
-
+import Admin_User_Management from './app/screen/Admin_User_Management';
+import Admin_Seller_Management from './app/screen/Admin_Seller_Management';
 
 const SellScreen = () => null;
 const AlertsScreen = () => null;
@@ -97,6 +98,8 @@ function AppNavigator() {
       <Stack.Screen name="ModerationHistory" component={Moderation_History_Screen} />
       <Stack.Screen name="CustomerEditAddress" component={Customer_Edit_Address} />
       <Stack.Screen name="AdminAccount" component={Admin_Account_Screen} />
+      <Stack.Screen name="AdminUserManagement" component={Admin_User_Management} />
+      <Stack.Screen name="AdminSellerManagement" component={Admin_Seller_Management} />
     </Stack.Navigator>
   );
 }

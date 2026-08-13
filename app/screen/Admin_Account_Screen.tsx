@@ -106,13 +106,12 @@ const Admin_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('UserPasswordEdit');
     };
 
-    // Admin Tools Handlers (Placeholders)
-    const handleBuyerManagement = () => {
-        Alert.alert('Buyer Management', 'Coming soon!');
+    const handleUserManagement = () => {
+        navigation.navigate('AdminUserManagement');
     };
 
     const handleSellerManagement = () => {
-        navigation.navigate('ManageSellers');
+        navigation.navigate('AdminSellerManagement');
     };
 
     const handleModeratorManagement = () => {
@@ -322,7 +321,7 @@ const Admin_Account_Screen = ({ navigation }: any) => {
                 <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Admin Tools</Text>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={handleBuyerManagement}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleUserManagement}>
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
                                 <Ionicons name="people-outline" size={22} color="#2196F3" />

@@ -37,6 +37,7 @@ import Customer_Add_Address from './app/screen/Customer_Add_Address';
 import Customer_Set_Default_Address from './app/screen/Customer_Set_Default_Address';
 import Customer_Edit_Address from './app/screen/Customer_Edit_Address';
 import Moderation_History_Screen from './app/screen/Moderation_History_Screen';
+import Admin_Account_Screen from './app/screen/Admin_Account_Screen';
 
 
 const SellScreen = () => null;
@@ -95,6 +96,7 @@ function AppNavigator() {
       <Stack.Screen name="CustomerSetDefaultAddress" component={Customer_Set_Default_Address} />
       <Stack.Screen name="ModerationHistory" component={Moderation_History_Screen} />
       <Stack.Screen name="CustomerEditAddress" component={Customer_Edit_Address} />
+      <Stack.Screen name="AdminAccount" component={Admin_Account_Screen} />
     </Stack.Navigator>
   );
 }

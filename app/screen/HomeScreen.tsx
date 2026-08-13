@@ -380,20 +380,25 @@ const HomeScreen = ({ navigation }: any) => {
           <Text style={styles.bottomBarLabel}>Alerts</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.bottomBarItem} activeOpacity={0.7}
+        <TouchableOpacity 
+            style={styles.bottomBarItem} 
+            activeOpacity={0.7}
             onPress={() => {
-                if (user?.role === 'Seller') 
+                if (user?.role === 'Admin') {
+                    navigation.navigate('AdminAccount');
+                } else if (user?.role === 'Seller') {
                     navigation.navigate('SellerAccount');
-                 else if (user?.role === 'Moderator' || user?.role === 'Admin') 
+                } else if (user?.role === 'Moderator') {
                     navigation.navigate('ModeratorAccount');
-                  else
+                } else {
                     navigation.navigate('Account');
-                
+                }
             }}
         >
             <Ionicons name="person-outline" size={26} color="#666" />
             <Text style={styles.bottomBarLabel}>Account</Text>
         </TouchableOpacity>
+
       </View>
     </SafeAreaView>
   );

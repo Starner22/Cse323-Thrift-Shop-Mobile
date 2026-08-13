@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 08, 2026 at 04:30 AM
+-- Generation Time: Aug 12, 2026 at 06:28 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -64,8 +64,7 @@ CREATE TABLE `cartitem` (
 
 INSERT INTO `cartitem` (`cartItemID`, `cartID`, `productID`, `quantity`) VALUES
 (12, 7, 47, 1),
-(13, 7, 46, 1),
-(14, 6, 47, 2);
+(13, 7, 46, 1);
 
 -- --------------------------------------------------------
 
@@ -104,6 +103,38 @@ INSERT INTO `categories` (`categoryID`, `name`, `image_path`) VALUES
 (21, 'Tools & Hardware', 'uploads/1.jpg'),
 (22, 'Art Supplies', 'uploads/1.jpg'),
 (23, 'Office Supplies', 'uploads/1.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `moderation_history`
+--
+
+CREATE TABLE `moderation_history` (
+  `historyID` int(11) NOT NULL,
+  `moderatorID` int(11) NOT NULL,
+  `targetUserID` int(11) DEFAULT NULL,
+  `targetProductID` int(11) DEFAULT NULL,
+  `action` varchar(50) NOT NULL,
+  `action_category` varchar(30) NOT NULL,
+  `details` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `moderation_history`
+--
+
+INSERT INTO `moderation_history` (`historyID`, `moderatorID`, `targetUserID`, `targetProductID`, `action`, `action_category`, `details`, `ip_address`, `created_at`) VALUES
+(1, 9, 8, NULL, 'suspend_seller', 'seller', 'Abb', '192.168.0.100', '2026-08-11 16:12:58'),
+(2, 9, 8, NULL, 'restore_seller', 'seller', NULL, '192.168.0.100', '2026-08-11 16:13:31'),
+(3, 9, NULL, 68, 'hide_product', 'product', NULL, '192.168.0.100', '2026-08-11 16:13:47'),
+(4, 9, NULL, 68, 'show_product', 'product', NULL, '192.168.0.100', '2026-08-11 16:14:00'),
+(5, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.100', '2026-08-11 16:14:11'),
+(6, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.100', '2026-08-11 16:14:12'),
+(7, 9, NULL, 68, 'hide_product', 'product', NULL, '192.168.0.100', '2026-08-11 16:14:41'),
+(8, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.100', '2026-08-11 16:15:00');
 
 -- --------------------------------------------------------
 
@@ -149,28 +180,6 @@ CREATE TABLE `orderitem` (
   `quantity` int(11) NOT NULL,
   `price_at_purchase` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `password_resets`
---
-
-CREATE TABLE `password_resets` (
-  `id` int(11) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `token` varchar(255) NOT NULL,
-  `expires_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `password_resets`
---
-
-INSERT INTO `password_resets` (`id`, `email`, `token`, `expires_at`) VALUES
-(1, 'mahee@mahee.com', '009001d4e930a5af34b6a10793bb7de6b833203ec2a5c841b1853b958d92694abf440d2bb0bd611b0788abeece6558bd243c', '2025-08-14 02:45:15'),
-(2, 'mahee@mahee.com', 'f7f2cc3654697895935ade5208085015c85429012b276d5668b49dcf4a9e9ba2df4a31cea8b7ab8bb607cd146fcc77922856', '2025-08-14 02:45:43'),
-(3, 'mahee@mahee.com', 'e560798d64a22a87b73bf59937cceb9068c599479f3506a01fc029d95f802fe3c8f29c7777d7a92f7a1475fec919e8babd45', '2025-08-14 02:46:45');
 
 -- --------------------------------------------------------
 
@@ -233,7 +242,7 @@ CREATE TABLE `product` (
 
 INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`, `quantity`, `categoryID`, `image_path`, `sellerID`, `status`, `created_at`, `updated_at`, `location`, `can_display`, `seller_active`, `moderation_notes`, `seller_notes`, `last_moderated_at`, `seller_updated_at`) VALUES
 (46, 'Vintage Leather Jacket', 'A classic leather jacket in good condition.', 75.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:39', NULL, 1, 1, NULL, NULL, '2026-08-08 00:20:39', NULL),
-(47, 'Acoustic Guitar', 'Well-maintained acoustic guitar, perfect for beginners.', 120.00, 'Excellent', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
+(47, 'Acoustic Guitar', 'Well-maintained acoustic guitar, perfect for beginners.', 120.00, 'Excellent', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-11 05:25:21', NULL, 1, 1, NULL, NULL, '2026-08-11 05:24:33', NULL),
 (48, 'Used Computer Monitor', 'A 24-inch monitor with minor signs of wear.', 80.00, 'Normal', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
 (49, 'Antique Wooden Chair', 'A sturdy wooden chair with a unique design.', 45.00, 'Subpar', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
 (50, 'Complete Series DVD Set', 'The complete series of a popular TV show.', 25.00, 'Good', 11, 5, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
@@ -252,7 +261,7 @@ INSERT INTO `product` (`productID`, `name`, `description`, `price`, `condition`,
 (63, 'Desk Lamp', 'A modern desk lamp with an adjustable neck.', 18.00, 'Excellent', 5, 6, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
 (64, 'Vintage Tea Set', 'A decorative tea set with floral patterns.', 60.00, 'Good', 5, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
 (65, 'Power Drill Kit', 'A power drill with a variety of bits and a carrying case.', 55.00, 'Good', 6, 8, 'uploads/1.jpg', 4, 'approved', '2025-08-20 16:53:44', '2026-08-08 00:20:11', NULL, 1, 1, NULL, NULL, NULL, NULL),
-(67, 'Duidin', 'Gdhdebryfbd', 2.00, 'Normal', 11, 22, 'uploads/product_1785947032_6a73639857566.jpg', 7, 'pending', '2026-08-05 16:23:52', '2026-08-05 17:42:45', NULL, 0, 1, NULL, NULL, NULL, NULL);
+(68, 'Hahaha', 'Hshsdhfbdhfbb', 10.00, 'Good', 30, 20, 'uploads/product_1786427835_6a7ab9bbb79be.jpg', 7, 'approved', '2026-08-11 05:57:15', '2026-08-11 16:15:00', NULL, 0, 1, NULL, NULL, '2026-08-11 16:15:00', NULL);
 
 -- --------------------------------------------------------
 
@@ -271,7 +280,7 @@ CREATE TABLE `seller_profile` (
   `bank_account` varchar(100) DEFAULT NULL,
   `id_card_path` varchar(255) DEFAULT NULL,
   `business_license_path` varchar(255) DEFAULT NULL,
-  `approval_status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `approval_status` enum('pending','approved','rejected','suspended') DEFAULT 'pending',
   `approved_at` timestamp NULL DEFAULT NULL,
   `rejected_reason` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -283,30 +292,8 @@ CREATE TABLE `seller_profile` (
 --
 
 INSERT INTO `seller_profile` (`sellerID`, `userID`, `business_name`, `business_address`, `business_phone`, `business_email`, `tax_id`, `bank_account`, `id_card_path`, `business_license_path`, `approval_status`, `approved_at`, `rejected_reason`, `created_at`, `updated_at`) VALUES
-(1, 7, 'Lisetsd', 'Asdfghaf', '01714079347', 'a@a.com', '123456678', '12344567891', NULL, NULL, 'approved', NULL, NULL, '2026-08-05 01:36:40', '2026-08-05 14:30:10'),
-(2, 8, 'Liset Corp', '', '01819248208', '', '', '', NULL, NULL, 'approved', '2026-08-06 01:36:51', NULL, '2026-08-06 01:33:12', '2026-08-06 01:36:51');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `supportticket`
---
-
-CREATE TABLE `supportticket` (
-  `ticketID` int(11) NOT NULL,
-  `userID` int(11) NOT NULL,
-  `issueDescription` text NOT NULL,
-  `status` enum('Open','In Progress','Closed') NOT NULL DEFAULT 'Open',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `supportticket`
---
-
-INSERT INTO `supportticket` (`ticketID`, `userID`, `issueDescription`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 'I have no products', 'Closed', '2025-08-13 20:19:43', '2025-08-13 22:51:18');
+(1, 7, 'Lisetsd', 'Asdfghaf', '01714079347', 'a@a.com', '123456678', '12344567891', NULL, NULL, 'approved', NULL, 'Ghr', '2026-08-05 01:36:40', '2026-08-11 05:31:27'),
+(2, 8, 'Liset Corp', '', '01819248208', '', '', '', NULL, NULL, 'approved', '2026-08-06 01:36:51', NULL, '2026-08-06 01:33:12', '2026-08-11 16:13:31');
 
 -- --------------------------------------------------------
 
@@ -323,22 +310,56 @@ CREATE TABLE `user` (
   `password` varchar(255) NOT NULL,
   `role` enum('Admin','Moderator','Seller','Buyer') NOT NULL DEFAULT 'Buyer',
   `registration_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `auth_token` varchar(255) DEFAULT NULL
+  `auth_token` varchar(255) DEFAULT NULL,
+  `can_moderate_sellers` tinyint(1) DEFAULT 0,
+  `can_moderate_products` tinyint(1) DEFAULT 0,
+  `can_approve_new_sellers` tinyint(1) DEFAULT 0,
+  `can_approve_new_products` tinyint(1) DEFAULT 0,
+  `can_manage_reports` tinyint(1) DEFAULT 0,
+  `can_view_analytics` tinyint(1) DEFAULT 0,
+  `can_manage_moderators` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`userID`, `name`, `email`, `phone`, `address`, `password`, `role`, `registration_date`, `auth_token`) VALUES
-(1, 'Mahee', 'mahee@mahee.com', NULL, NULL, '$2y$10$hPpkGhku7bcaRTrRfba.Wun9j/71zTwW/9D6RVBTS3KyXgsiCUKOS', 'Buyer', '2025-08-13 20:10:00', NULL),
-(3, 'admin', 'admin@shop.com', NULL, NULL, '$2y$10$tZJsb8sEUXU7jI7ygqLDh.FpcZtnIf1F.ADcz7fPQKkqV0mn7.auq', 'Admin', '2025-08-13 20:26:22', NULL),
-(4, 'Seller', 'seller@shop.com', NULL, NULL, '$2y$10$JSj3rfVEPYM0QRp9mVFLmOZpWI6/WAggzAVKH100jdULjLcl5Ud.S', 'Seller', '2025-08-13 22:19:31', NULL),
-(5, 'buyer', 'buyer@shop.com', NULL, NULL, '$2y$10$JZ5/V0QujlSKwBozZQrCmOjLljm2A4XW4C6u.AJPeDTk3oqjqaY1W', 'Buyer', '2025-08-13 22:20:49', NULL),
-(6, 'Sohee', 'sohee@sohee.com', NULL, NULL, '$2y$10$/mYEo2oBym1rwXZ03AKOUe.Sp2l5XoinAzORb03EbVaL4luJ2wbxu', 'Buyer', '2025-08-14 00:08:31', NULL),
-(7, 'Seller_No.1', 's@s.com', '', '', '$2y$10$JON.qMMPViApSMT3G2Dq0eJ5aZ04m.G43mZDVgjKRReCZ4elL6Exu', 'Seller', '2026-07-27 12:46:04', 'ed99dad332f4b7f385e18fe4f3937af3be02fdeff1baa7f2a6070a32052a7e64'),
-(8, 'Buyer_No.1', 'b@b.com', NULL, NULL, '$2y$10$BLDz4F5ym3Kg8JIPLjh0yuEE5gr/ckAggRvCBT7Hv4NXCejz6BQK2', 'Seller', '2026-08-05 11:53:20', NULL),
-(9, 'Moderator_No.1', 'm@m.com', NULL, NULL, '$2y$10$h6RfUbPm404jEjz0IkGVUuOJouQ01thFxMQJ9JP7uQUrJNQBCzoxu', 'Moderator', '2026-08-05 16:41:10', NULL);
+INSERT INTO `user` (`userID`, `name`, `email`, `phone`, `address`, `password`, `role`, `registration_date`, `auth_token`, `can_moderate_sellers`, `can_moderate_products`, `can_approve_new_sellers`, `can_approve_new_products`, `can_manage_reports`, `can_view_analytics`, `can_manage_moderators`) VALUES
+(1, 'Mahee', 'mahee@mahee.com', NULL, NULL, '$2y$10$hPpkGhku7bcaRTrRfba.Wun9j/71zTwW/9D6RVBTS3KyXgsiCUKOS', 'Buyer', '2025-08-13 20:10:00', NULL, 0, 0, 0, 0, 0, 0, 0),
+(3, 'admin', 'admin@shop.com', NULL, NULL, '$2y$10$tZJsb8sEUXU7jI7ygqLDh.FpcZtnIf1F.ADcz7fPQKkqV0mn7.auq', 'Admin', '2025-08-13 20:26:22', NULL, 0, 0, 0, 0, 0, 0, 0),
+(4, 'Seller', 'seller@shop.com', NULL, NULL, '$2y$10$JSj3rfVEPYM0QRp9mVFLmOZpWI6/WAggzAVKH100jdULjLcl5Ud.S', 'Seller', '2025-08-13 22:19:31', NULL, 0, 0, 0, 0, 0, 0, 0),
+(5, 'buyer', 'buyer@shop.com', NULL, NULL, '$2y$10$JZ5/V0QujlSKwBozZQrCmOjLljm2A4XW4C6u.AJPeDTk3oqjqaY1W', 'Buyer', '2025-08-13 22:20:49', NULL, 0, 0, 0, 0, 0, 0, 0),
+(6, 'Sohee', 'sohee@sohee.com', NULL, NULL, '$2y$10$/mYEo2oBym1rwXZ03AKOUe.Sp2l5XoinAzORb03EbVaL4luJ2wbxu', 'Buyer', '2025-08-14 00:08:31', NULL, 0, 0, 0, 0, 0, 0, 0),
+(7, 'Seller_No.1', 's@s.com', '', '', '$2y$10$JON.qMMPViApSMT3G2Dq0eJ5aZ04m.G43mZDVgjKRReCZ4elL6Exu', 'Seller', '2026-07-27 12:46:04', 'ed99dad332f4b7f385e18fe4f3937af3be02fdeff1baa7f2a6070a32052a7e64', 0, 0, 0, 0, 0, 0, 0),
+(8, 'Buyer_No.1', 'b@b.com', NULL, NULL, '$2y$10$BLDz4F5ym3Kg8JIPLjh0yuEE5gr/ckAggRvCBT7Hv4NXCejz6BQK2', 'Buyer', '2026-08-05 11:53:20', NULL, 0, 0, 0, 0, 0, 0, 0),
+(9, 'Moderator_No.1', 'm@m.com', NULL, NULL, '$2y$10$h6RfUbPm404jEjz0IkGVUuOJouQ01thFxMQJ9JP7uQUrJNQBCzoxu', 'Admin', '2026-08-05 16:41:10', NULL, 1, 1, 1, 1, 1, 1, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_addresses`
+--
+
+CREATE TABLE `user_addresses` (
+  `addressID` int(11) NOT NULL,
+  `userID` int(11) NOT NULL,
+  `address` varchar(255) NOT NULL,
+  `city` varchar(100) NOT NULL,
+  `state` varchar(100) DEFAULT NULL,
+  `postal_code` varchar(20) NOT NULL,
+  `country` varchar(100) DEFAULT 'Bangladesh',
+  `phone` varchar(20) DEFAULT NULL,
+  `is_default` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_addresses`
+--
+
+INSERT INTO `user_addresses` (`addressID`, `userID`, `address`, `city`, `state`, `postal_code`, `country`, `phone`, `is_default`, `created_at`, `updated_at`) VALUES
+(2, 8, '9u2', 'Vigs', 'Chi', '3844', 'Bangladesh', '', 1, '2026-08-11 13:20:52', '2026-08-11 13:27:18');
 
 -- --------------------------------------------------------
 
@@ -409,6 +430,15 @@ ALTER TABLE `categories`
   ADD UNIQUE KEY `name` (`name`);
 
 --
+-- Indexes for table `moderation_history`
+--
+ALTER TABLE `moderation_history`
+  ADD PRIMARY KEY (`historyID`),
+  ADD KEY `moderatorID` (`moderatorID`),
+  ADD KEY `targetUserID` (`targetUserID`),
+  ADD KEY `targetProductID` (`targetProductID`);
+
+--
 -- Indexes for table `order`
 --
 ALTER TABLE `order`
@@ -422,13 +452,6 @@ ALTER TABLE `orderitem`
   ADD PRIMARY KEY (`orderItemID`),
   ADD KEY `orderID` (`orderID`),
   ADD KEY `productID` (`productID`);
-
---
--- Indexes for table `password_resets`
---
-ALTER TABLE `password_resets`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `email` (`email`);
 
 --
 -- Indexes for table `payments`
@@ -453,18 +476,18 @@ ALTER TABLE `seller_profile`
   ADD UNIQUE KEY `userID` (`userID`);
 
 --
--- Indexes for table `supportticket`
---
-ALTER TABLE `supportticket`
-  ADD PRIMARY KEY (`ticketID`),
-  ADD KEY `userID` (`userID`);
-
---
 -- Indexes for table `user`
 --
 ALTER TABLE `user`
   ADD PRIMARY KEY (`userID`),
   ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indexes for table `user_addresses`
+--
+ALTER TABLE `user_addresses`
+  ADD PRIMARY KEY (`addressID`),
+  ADD KEY `idx_user_default` (`userID`,`is_default`);
 
 --
 -- Indexes for table `wishlist`
@@ -504,6 +527,12 @@ ALTER TABLE `categories`
   MODIFY `categoryID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
+-- AUTO_INCREMENT for table `moderation_history`
+--
+ALTER TABLE `moderation_history`
+  MODIFY `historyID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
 -- AUTO_INCREMENT for table `order`
 --
 ALTER TABLE `order`
@@ -516,12 +545,6 @@ ALTER TABLE `orderitem`
   MODIFY `orderItemID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT for table `password_resets`
---
-ALTER TABLE `password_resets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
@@ -531,7 +554,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `product`
 --
 ALTER TABLE `product`
-  MODIFY `productID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `productID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `seller_profile`
@@ -540,16 +563,16 @@ ALTER TABLE `seller_profile`
   MODIFY `sellerID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- AUTO_INCREMENT for table `supportticket`
---
-ALTER TABLE `supportticket`
-  MODIFY `ticketID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
   MODIFY `userID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `user_addresses`
+--
+ALTER TABLE `user_addresses`
+  MODIFY `addressID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `wishlist`
@@ -579,6 +602,14 @@ ALTER TABLE `cart`
 ALTER TABLE `cartitem`
   ADD CONSTRAINT `cartitem_ibfk_1` FOREIGN KEY (`cartID`) REFERENCES `cart` (`cartID`) ON DELETE CASCADE,
   ADD CONSTRAINT `cartitem_ibfk_2` FOREIGN KEY (`productID`) REFERENCES `product` (`productID`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `moderation_history`
+--
+ALTER TABLE `moderation_history`
+  ADD CONSTRAINT `moderation_history_ibfk_1` FOREIGN KEY (`moderatorID`) REFERENCES `user` (`userID`) ON DELETE CASCADE,
+  ADD CONSTRAINT `moderation_history_ibfk_2` FOREIGN KEY (`targetUserID`) REFERENCES `user` (`userID`) ON DELETE SET NULL,
+  ADD CONSTRAINT `moderation_history_ibfk_3` FOREIGN KEY (`targetProductID`) REFERENCES `product` (`productID`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `order`
@@ -613,10 +644,10 @@ ALTER TABLE `seller_profile`
   ADD CONSTRAINT `seller_profile_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `user` (`userID`) ON DELETE CASCADE;
 
 --
--- Constraints for table `supportticket`
+-- Constraints for table `user_addresses`
 --
-ALTER TABLE `supportticket`
-  ADD CONSTRAINT `supportticket_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `user` (`userID`) ON DELETE CASCADE;
+ALTER TABLE `user_addresses`
+  ADD CONSTRAINT `user_addresses_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `user` (`userID`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `wishlist`

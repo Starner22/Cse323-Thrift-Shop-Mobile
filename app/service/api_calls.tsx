@@ -981,6 +981,57 @@ async getCurrentUser(): Promise<any | null> {
         }
     }
 
+    // ========== ADMIN - PRODUCT MANAGEMENT ==========
+
+    async getProductsForAdmin(page: number = 1, limit: number = 20, search: string = '', status: string = ''): Promise<any> {
+        try {
+            let endpoint = `/admin_manage_product.php?page=${page}&limit=${limit}`;
+            if (search) {
+                endpoint += `&search=${encodeURIComponent(search)}`;
+            }
+            if (status && status !== 'all') {
+                endpoint += `&status=${status}`;
+            }
+            return await this.request<any>(endpoint, {}, true);
+        } catch (error) {
+            console.error('Error fetching products for admin:', error);
+            return { success: false, data: [], stats: { total: 0, approved: 0, pending: 0, rejected: 0 } };
+        }
+    }
+
+    async getProductForAdmin(productID: number): Promise<any> {
+        try {
+            return await this.request<any>(`/admin_manage_product.php?productID=${productID}`, {}, true);
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+            return { success: false };
+        }
+    }
+
+    async adminProductAction(data: { productID: number; action: 'approve' | 'reject' | 'hide' | 'show' | 'delete'; reason?: string }): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_product.php', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }, true);
+        } catch (error) {
+            console.error('Error performing product action:', error);
+            throw error;
+        }
+    }
+
+    async adminUpdateProduct(productID: number, data: any): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_product.php', {
+                method: 'PUT',
+                body: JSON.stringify({ productID, ...data }),
+            }, true);
+        } catch (error) {
+            console.error('Error updating product:', error);
+            throw error;
+        }
+    }
+
     // ========== ADMIN - CATEGORY MANAGEMENT ==========
 
     async getCategoriesForAdmin(page: number = 1, limit: number = 20, search: string = ''): Promise<any> {

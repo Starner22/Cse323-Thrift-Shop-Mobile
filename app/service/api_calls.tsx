@@ -307,7 +307,6 @@ async getCurrentUser(): Promise<any | null> {
       }
   }
 
-
   async removeFromWishlist(wishlistItemId: number): Promise<any> {
       try {
           return await this.request<any>('/wishlist.php', {
@@ -978,6 +977,66 @@ async getCurrentUser(): Promise<any | null> {
             }, true);
         } catch (error) {
             console.error('Error removing moderator:', error);
+            throw error;
+        }
+    }
+
+    // ========== ADMIN - CATEGORY MANAGEMENT ==========
+
+    async getCategoriesForAdmin(page: number = 1, limit: number = 20, search: string = ''): Promise<any> {
+        try {
+            let endpoint = `/admin_manage_category.php?page=${page}&limit=${limit}`;
+            if (search) {
+                endpoint += `&search=${encodeURIComponent(search)}`;
+            }
+            return await this.request<any>(endpoint, {}, true);
+        } catch (error) {
+            console.error('Error fetching categories for admin:', error);
+            return { success: false, data: [], pagination: { total: 0 } };
+        }
+    }
+
+    async getCategoryForAdmin(categoryID: number): Promise<any> {
+        try {
+            return await this.request<any>(`/admin_manage_category.php?categoryID=${categoryID}`, {}, true);
+        } catch (error) {
+            console.error('Error fetching category details:', error);
+            return { success: false };
+        }
+    }
+
+    async addCategory(data: { name: string; image?: string | null }): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_category.php', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }, true);
+        } catch (error) {
+            console.error('Error adding category:', error);
+            throw error;
+        }
+    }
+
+    async updateCategory(categoryID: number, data: { name: string; image?: string | null }): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_category.php', {
+                method: 'PUT',
+                body: JSON.stringify({ categoryID, ...data }),
+            }, true);
+        } catch (error) {
+            console.error('Error updating category:', error);
+            throw error;
+        }
+    }
+
+    async deleteCategory(categoryID: number): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_category.php', {
+                method: 'DELETE',
+                body: JSON.stringify({ categoryID }),
+            }, true);
+        } catch (error) {
+            console.error('Error deleting category:', error);
             throw error;
         }
     }

@@ -122,8 +122,21 @@ const Admin_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('ModerateCurrentProducts');
     };
 
-    const handleModerationHistory = () => {
+    const handleCategoryManagement = () => {
+        navigation.navigate('AdminCategoryManagement');
+    };
+
+
+    const handleViewModerationHistory = () => {
         navigation.navigate('ModerationHistory');
+    };
+
+    const handleApproveSellers = () => {
+        navigation.navigate('ModeratePendingSellers');
+    };
+
+    const handleApproveProducts = () => {
+        navigation.navigate('ModeratePendingProducts');
     };
 
     const handleAnalytics = () => {
@@ -361,12 +374,12 @@ const Admin_Account_Screen = ({ navigation }: any) => {
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={handleModerationHistory}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleCategoryManagement}>
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
-                                <Ionicons name="document-text-outline" size={22} color="#9C27B0" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="folder-outline" size={22} color="#FF9800" />
                             </View>
-                            <Text style={styles.menuText}>Moderation History</Text>
+                            <Text style={styles.menuText}>Category Management</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
@@ -377,6 +390,41 @@ const Admin_Account_Screen = ({ navigation }: any) => {
                                 <Ionicons name="bar-chart-outline" size={22} color="#FF9800" />
                             </View>
                             <Text style={styles.menuText}>Analytics</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Moderator Tools */}
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>🛡️ Moderator Tools</Text>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleApproveSellers}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="people-outline" size={22} color="#2196F3" />
+                            </View>
+                            <Text style={styles.menuText}>Approve Sellers</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleApproveProducts}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="cube-outline" size={22} color="#FF9800" />
+                            </View>
+                            <Text style={styles.menuText}>Approve Products</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleViewModerationHistory}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
+                                <Ionicons name="document-text-outline" size={22} color="#9C27B0" />
+                            </View>
+                            <Text style={styles.menuText}>View Moderation History</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>

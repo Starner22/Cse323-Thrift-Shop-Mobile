@@ -4,7 +4,7 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
 header("Content-Type: application/json");
 
@@ -55,60 +55,57 @@ try {
     $method = $_SERVER['REQUEST_METHOD'];
 
     // ============================================================
-    // GET: Fetch users (with pagination, search, filter)
+    // GET: Fetch categories with product counts
     // ============================================================
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
         $offset = ($page - 1) * $limit;
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-        $role = isset($_GET['role']) ? $_GET['role'] : '';
-        $userID = isset($_GET['userID']) ? intval($_GET['userID']) : 0;
+        $categoryID = isset($_GET['categoryID']) ? intval($_GET['categoryID']) : 0;
 
-        // If fetching a single user
-        if ($userID > 0) {
+        // ============================================================
+        // Get single category
+        // ============================================================
+        if ($categoryID > 0) {
             $sql = "SELECT 
-                        u.userID, u.name, u.email, u.phone, u.address, u.role, u.registration_date,
-                        (SELECT address FROM user_addresses WHERE userID = u.userID AND is_default = 1 LIMIT 1) as default_address
-                    FROM user u
-                    WHERE u.userID = ?";
+                        c.categoryID, c.name, c.image_path, c.created_at,
+                        (SELECT COUNT(*) FROM product WHERE categoryID = c.categoryID) as product_count
+                    FROM categories c
+                    WHERE c.categoryID = ?";
             
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$userID]);
-            $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->execute([$categoryID]);
+            $category = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (!$userData) {
-                echo json_encode(['success' => false, 'message' => 'User not found']);
+            if (!$category) {
+                echo json_encode(['success' => false, 'message' => 'Category not found']);
                 exit();
             }
             
-            $userData['userID'] = intval($userData['userID']);
+            $category['categoryID'] = intval($category['categoryID']);
+            $category['product_count'] = intval($category['product_count']);
             
             echo json_encode([
                 'success' => true,
-                'data' => $userData
+                'data' => $category
             ]);
             exit();
         }
 
-        // Build the WHERE clause
-        $whereClause = "WHERE u.role IN ('Buyer', 'Seller')";
-        $params = array();
-        
+        // ============================================================
+        // Get all categories with counts
+        // ============================================================
+        $whereClause = "WHERE 1=1";
+        $params = [];
+
         if (!empty($search)) {
-            $whereClause .= " AND (u.name LIKE ? OR u.email LIKE ?)";
-            $searchParam = "%$search%";
-            $params[] = $searchParam;
-            $params[] = $searchParam;
-        }
-        
-        if (!empty($role) && ($role === 'Buyer' || $role === 'Seller')) {
-            $whereClause .= " AND u.role = ?";
-            $params[] = $role;
+            $whereClause .= " AND c.name LIKE ?";
+            $params[] = "%$search%";
         }
 
-        // Get total count - use a separate simple query
-        $countSql = "SELECT COUNT(*) as total FROM user u " . $whereClause;
+        // Get total count
+        $countSql = "SELECT COUNT(*) as total FROM categories c " . $whereClause;
         $countStmt = $conn->prepare($countSql);
         $countStmt->execute($params);
         $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
@@ -116,36 +113,31 @@ try {
 
         // Main query
         $sql = "SELECT 
-                    u.userID, u.name, u.email, u.phone, u.role, u.registration_date,
-                    (SELECT COUNT(*) FROM product WHERE sellerID = u.userID) as product_count,
-                    (SELECT COUNT(*) FROM `order` WHERE buyerID = u.userID) as order_count
-                FROM user u 
-                " . $whereClause . " 
-                ORDER BY u.registration_date DESC 
+                    c.categoryID, c.name, c.image_path, c.created_at,
+                    (SELECT COUNT(*) FROM product WHERE categoryID = c.categoryID) as product_count
+                FROM categories c
+                " . $whereClause . "
+                ORDER BY c.name ASC
                 LIMIT " . intval($limit) . " OFFSET " . intval($offset);
         
         $stmt = $conn->prepare($sql);
         $stmt->execute($params);
-        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Format response
-        $formattedUsers = [];
-        foreach ($users as $user) {
-            $formattedUsers[] = [
-                'userID' => intval($user['userID']),
-                'name' => $user['name'],
-                'email' => $user['email'],
-                'phone' => $user['phone'] ?? 'N/A',
-                'role' => $user['role'],
-                'registration_date' => $user['registration_date'],
-                'product_count' => intval($user['product_count']),
-                'order_count' => intval($user['order_count'])
+        $formattedCategories = [];
+        foreach ($categories as $category) {
+            $formattedCategories[] = [
+                'categoryID' => intval($category['categoryID']),
+                'name' => $category['name'],
+                'image_path' => $category['image_path'],
+                'created_at' => $category['created_at'],
+                'product_count' => intval($category['product_count'])
             ];
         }
 
         echo json_encode([
             'success' => true,
-            'data' => $formattedUsers,
+            'data' => $formattedCategories,
             'pagination' => [
                 'page' => $page,
                 'limit' => $limit,
@@ -157,165 +149,215 @@ try {
     }
 
     // ============================================================
-    // PUT: Update user
+    // POST: Add new category
     // ============================================================
-    if ($method === 'PUT') {
+    if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
-        $targetUserID = intval($input['userID'] ?? 0);
         
-        if (!$targetUserID) {
-            echo json_encode(['success' => false, 'message' => 'User ID required']);
-            exit();
-        }
-
-        // Prevent admin from editing themselves
-        if ($targetUserID == $adminID) {
-            echo json_encode(['success' => false, 'message' => 'Cannot edit your own account through User Management']);
-            exit();
-        }
-
-        // Verify user exists and is Buyer or Seller
-        $stmt = $conn->prepare("SELECT userID, role FROM user WHERE userID = ? AND role IN ('Buyer', 'Seller')");
-        $stmt->execute([$targetUserID]);
-        $targetUser = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$targetUser) {
-            echo json_encode(['success' => false, 'message' => 'User not found or not a buyer/seller']);
-            exit();
-        }
-
         $name = trim($input['name'] ?? '');
-        $email = trim($input['email'] ?? '');
-        $phone = trim($input['phone'] ?? '');
-        $role = $input['role'] ?? '';
-
+        $imageBase64 = $input['image'] ?? null;
+        
         if (empty($name)) {
-            echo json_encode(['success' => false, 'message' => 'Name is required']);
+            echo json_encode(['success' => false, 'message' => 'Category name is required']);
             exit();
         }
 
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['success' => false, 'message' => 'Valid email is required']);
+        // Check if category name already exists
+        $stmt = $conn->prepare("SELECT categoryID FROM categories WHERE name = ?");
+        $stmt->execute([$name]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Category name already exists']);
             exit();
         }
 
-        // Build update query
-        $updates = [];
-        $params = [];
-
-        $updates[] = "name = ?";
-        $params[] = $name;
-
-        $updates[] = "email = ?";
-        $params[] = $email;
-
-        if (!empty($phone)) {
-            $updates[] = "phone = ?";
-            $params[] = $phone;
+        // Handle image upload
+        $imagePath = null;
+        if ($imageBase64) {
+            $imageData = base64_decode(preg_replace('#^data:image/[^;]+;base64,#', '', $imageBase64));
+            if ($imageData) {
+                $uploadDir = __DIR__ . '/../uploads/categories/';
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                $filename = 'category_' . time() . '_' . uniqid() . '.jpg';
+                $filepath = $uploadDir . $filename;
+                
+                if (file_put_contents($filepath, $imageData)) {
+                    $imagePath = 'uploads/categories/' . $filename;
+                }
+            }
         }
 
-        if (!empty($role) && in_array($role, ['Buyer', 'Seller'])) {
-            $updates[] = "role = ?";
-            $params[] = $role;
-        }
-
-        $params[] = $targetUserID;
-        $sql = "UPDATE user SET " . implode(", ", $updates) . " WHERE userID = ?";
-
+        // Insert category
+        $sql = "INSERT INTO categories (name, image_path) VALUES (?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute([$name, $imagePath]);
+        
+        $newCategoryID = $conn->lastInsertId();
 
         // Log the action
         $details = json_encode([
-            'updated_fields' => array_keys(array_filter([
-                'name' => $name,
-                'email' => $email,
-                'phone' => $phone,
-                'role' => $role
-            ], function($v) { return !empty($v); }))
+            'added_category' => $name,
+            'image_uploaded' => $imagePath ? true : false
         ]);
-        logUserAction($adminID, 'edit_user', $targetUserID, $details);
+        logModeratorAction($adminID, 'add_category', null, $details);
 
         echo json_encode([
             'success' => true,
-            'message' => 'User updated successfully'
+            'message' => 'Category added successfully',
+            'categoryID' => $newCategoryID
         ]);
         exit();
     }
 
     // ============================================================
-    // DELETE: Delete user
+    // PUT: Update category
     // ============================================================
-    if ($method === 'DELETE') {
+    if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
-        $targetUserID = intval($input['userID'] ?? 0);
+        $categoryID = intval($input['categoryID'] ?? 0);
         
-        if (!$targetUserID) {
-            echo json_encode(['success' => false, 'message' => 'User ID required']);
+        if (!$categoryID) {
+            echo json_encode(['success' => false, 'message' => 'Category ID required']);
             exit();
         }
 
-        // Prevent admin from deleting themselves
-        if ($targetUserID == $adminID) {
-            echo json_encode(['success' => false, 'message' => 'Cannot delete your own account']);
-            exit();
-        }
-
-        // Get user info before deletion
-        $stmt = $conn->prepare("SELECT userID, name, email, role FROM user WHERE userID = ? AND role IN ('Buyer', 'Seller')");
-        $stmt->execute([$targetUserID]);
-        $targetUser = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Verify category exists
+        $stmt = $conn->prepare("SELECT categoryID, name, image_path FROM categories WHERE categoryID = ?");
+        $stmt->execute([$categoryID]);
+        $category = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$targetUser) {
-            echo json_encode(['success' => false, 'message' => 'User not found or not a buyer/seller']);
+        if (!$category) {
+            echo json_encode(['success' => false, 'message' => 'Category not found']);
             exit();
         }
 
-        // Check if user has products
-        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE sellerID = ?");
-        $stmt->execute([$targetUserID]);
-        $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
-        $hasProducts = intval($productCount['count']) > 0;
+        $name = trim($input['name'] ?? '');
+        $imageBase64 = $input['image'] ?? null;
+        
+        if (empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'Category name is required']);
+            exit();
+        }
 
-        // Check if user has orders
-        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM `order` WHERE buyerID = ?");
-        $stmt->execute([$targetUserID]);
-        $orderCount = $stmt->fetch(PDO::FETCH_ASSOC);
-        $hasOrders = intval($orderCount['count']) > 0;
+        // Check if name already exists (excluding this category)
+        $stmt = $conn->prepare("SELECT categoryID FROM categories WHERE name = ? AND categoryID != ?");
+        $stmt->execute([$name, $categoryID]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Category name already exists']);
+            exit();
+        }
 
-        // Delete user
-        $stmt = $conn->prepare("DELETE FROM user WHERE userID = ?");
-        $stmt->execute([$targetUserID]);
+        // Handle image upload
+        $imagePath = $category['image_path'];
+        if ($imageBase64) {
+            // Delete old image if exists
+            if ($imagePath && file_exists(__DIR__ . '/../' . $imagePath)) {
+                unlink(__DIR__ . '/../' . $imagePath);
+            }
+            
+            $imageData = base64_decode(preg_replace('#^data:image/[^;]+;base64,#', '', $imageBase64));
+            if ($imageData) {
+                $uploadDir = __DIR__ . '/../uploads/categories/';
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                $filename = 'category_' . time() . '_' . uniqid() . '.jpg';
+                $filepath = $uploadDir . $filename;
+                
+                if (file_put_contents($filepath, $imageData)) {
+                    $imagePath = 'uploads/categories/' . $filename;
+                }
+            }
+        }
+
+        // Update category
+        $sql = "UPDATE categories SET name = ?, image_path = ? WHERE categoryID = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$name, $imagePath, $categoryID]);
 
         // Log the action
         $details = json_encode([
-            'deleted_user' => $targetUser['name'],
-            'email' => $targetUser['email'],
-            'role' => $targetUser['role'],
-            'had_products' => $hasProducts,
-            'had_orders' => $hasOrders
+            'updated_category' => $name,
+            'old_name' => $category['name'],
+            'image_updated' => $imageBase64 ? true : false
         ]);
-        logUserAction($adminID, 'delete_user', $targetUserID, $details);
+        logModeratorAction($adminID, 'edit_category', null, $details);
 
-        $response = [
+        echo json_encode([
             'success' => true,
-            'message' => 'User deleted successfully',
-            'was_seller' => $targetUser['role'] === 'Seller',
-            'had_products' => $hasProducts,
-            'had_orders' => $hasOrders
-        ];
+            'message' => 'Category updated successfully'
+        ]);
+        exit();
+    }
 
-        echo json_encode($response);
+    // ============================================================
+    // DELETE: Delete category
+    // ============================================================
+    if ($method === 'DELETE') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $categoryID = intval($input['categoryID'] ?? 0);
+        
+        if (!$categoryID) {
+            echo json_encode(['success' => false, 'message' => 'Category ID required']);
+            exit();
+        }
+
+        // Verify category exists
+        $stmt = $conn->prepare("SELECT categoryID, name, image_path FROM categories WHERE categoryID = ?");
+        $stmt->execute([$categoryID]);
+        $category = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$category) {
+            echo json_encode(['success' => false, 'message' => 'Category not found']);
+            exit();
+        }
+
+        // Check if products exist in this category
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE categoryID = ?");
+        $stmt->execute([$categoryID]);
+        $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
+        $hasProducts = intval($productCount['count']) > 0;
+
+        if ($hasProducts) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Cannot delete category. It has ' . $productCount['count'] . ' products assigned to it. Please reassign or delete the products first.'
+            ]);
+            exit();
+        }
+
+        // Delete image file if exists
+        if ($category['image_path'] && file_exists(__DIR__ . '/../' . $category['image_path'])) {
+            unlink(__DIR__ . '/../' . $category['image_path']);
+        }
+
+        // Delete category
+        $stmt = $conn->prepare("DELETE FROM categories WHERE categoryID = ?");
+        $stmt->execute([$categoryID]);
+
+        // Log the action
+        $details = json_encode([
+            'deleted_category' => $category['name']
+        ]);
+        logModeratorAction($adminID, 'delete_category', null, $details);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Category deleted successfully'
+        ]);
         exit();
     }
 
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 
 } catch (PDOException $e) {
-    error_log("Admin users PDO error: " . $e->getMessage());
+    error_log("Admin manage category PDO error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
-    error_log("Admin users error: " . $e->getMessage());
+    error_log("Admin manage category error: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>

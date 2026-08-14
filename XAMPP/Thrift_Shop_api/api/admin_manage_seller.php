@@ -55,7 +55,7 @@ try {
     $method = $_SERVER['REQUEST_METHOD'];
 
     // ============================================================
-    // GET: Fetch sellers with pagination, search, filter
+    // GET: Fetch sellers or seller products
     // ============================================================
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -64,8 +64,89 @@ try {
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
         $sellerID = isset($_GET['sellerID']) ? intval($_GET['sellerID']) : 0;
+        $moderatorID = isset($_GET['moderatorID']) ? intval($_GET['moderatorID']) : 0;
+        $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-        // If fetching a single seller
+        // ============================================================
+        // CHECK FOR PRODUCTS ACTION FIRST
+        // ============================================================
+        if ($action === 'products' && $sellerID > 0) {
+            error_log("=== Fetching products for seller ID: $sellerID ===");
+            
+            $sql = "SELECT 
+                        p.productID, p.name, p.description, p.price, p.condition, 
+                        p.quantity, p.categoryID, p.image_path, p.status, p.created_at,
+                        c.name as categoryName
+                    FROM product p
+                    LEFT JOIN categories c ON p.categoryID = c.categoryID
+                    WHERE p.sellerID = ?
+                    ORDER BY p.created_at DESC
+                    LIMIT " . intval($limit) . " OFFSET " . intval($offset);
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$sellerID]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            error_log("Products found: " . count($products));
+
+            // Get total count
+            $countSql = "SELECT COUNT(*) as total FROM product WHERE sellerID = ?";
+            $countStmt = $conn->prepare($countSql);
+            $countStmt->execute([$sellerID]);
+            $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
+            $totalCount = intval($totalResult['total']);
+
+            // Get status counts
+            $statusSql = "SELECT status, COUNT(*) as count FROM product WHERE sellerID = ? GROUP BY status";
+            $statusStmt = $conn->prepare($statusSql);
+            $statusStmt->execute([$sellerID]);
+            $statusCounts = $statusStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $stats = [
+                'total' => 0,
+                'approved' => 0,
+                'pending' => 0,
+                'rejected' => 0
+            ];
+            foreach ($statusCounts as $sc) {
+                $stats[$sc['status']] = intval($sc['count']);
+                $stats['total'] += intval($sc['count']);
+            }
+
+            $formattedProducts = [];
+            foreach ($products as $product) {
+                $formattedProducts[] = [
+                    'productID' => intval($product['productID']),
+                    'name' => $product['name'],
+                    'description' => $product['description'],
+                    'price' => floatval($product['price']),
+                    'condition' => $product['condition'],
+                    'quantity' => intval($product['quantity']),
+                    'categoryID' => $product['categoryID'] ? intval($product['categoryID']) : null,
+                    'categoryName' => $product['categoryName'] ?? 'Uncategorized',
+                    'image_path' => $product['image_path'],
+                    'status' => $product['status'],
+                    'created_at' => $product['created_at']
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => $formattedProducts,
+                'stats' => $stats,
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $totalCount,
+                    'totalPages' => $totalCount > 0 ? ceil($totalCount / $limit) : 1
+                ]
+            ]);
+            exit();
+        }
+
+        // ============================================================
+        // GET: Fetch single seller (if sellerID provided)
+        // ============================================================
         if ($sellerID > 0) {
             $sql = "SELECT 
                         u.userID, u.name, u.email, u.phone, u.address, u.role, u.registration_date,
@@ -88,7 +169,6 @@ try {
                 exit();
             }
             
-            // Format response
             $sellerData['userID'] = intval($sellerData['userID']);
             $sellerData['sellerID'] = intval($sellerData['sellerID']);
             $sellerData['approved_products'] = intval($sellerData['approved_products']);
@@ -103,7 +183,9 @@ try {
             exit();
         }
 
-        // Build WHERE clause
+        // ============================================================
+        // GET: Fetch all sellers (default)
+        // ============================================================
         $whereClause = "WHERE sp.userID IS NOT NULL";
         $params = array();
         

@@ -39,6 +39,13 @@ import Admin_All_Moderation_History from './app/screen/Admin_All_Moderation_Hist
 import Admin_Account_Screen from './app/screen/Admin_Account_Screen';
 import Admin_User_Management from './app/screen/Admin_User_Management';
 import Admin_Seller_Management from './app/screen/Admin_Seller_Management';
+import Admin_Moderator_Management from './app/screen/Admin_Moderator_Management';
+import Admin_Seller_Products from './app/screen/Admin_Seller_Products';
+import Admin_Seller_Orders from './app/screen/Admin_Seller_Orders';
+import Admin_Product_Management from './app/screen/Admin_Product_Management';
+import Admin_Category_Management from './app/screen/Admin_Category_Management';
+
+
 
 const SellScreen = () => null;
 const AlertsScreen = () => null;

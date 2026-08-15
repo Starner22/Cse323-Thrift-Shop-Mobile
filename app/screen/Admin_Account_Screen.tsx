@@ -115,7 +115,7 @@ const Admin_Account_Screen = ({ navigation }: any) => {
     };
 
     const handleModeratorManagement = () => {
-        Alert.alert('Moderator Management', 'Coming soon!');
+        navigation.navigate('AdminModeratorManagement');
     };
 
     const handleProductManagement = () => {

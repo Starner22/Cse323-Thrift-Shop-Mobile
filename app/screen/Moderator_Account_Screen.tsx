@@ -146,7 +146,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
             );
             return;
         }
-        navigation.navigate('ModerationHistory');
+        navigation.navigate('PersonalModerationHistory');
     };
 
     const handleReports = () => {

@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
+    Image,
     ActivityIndicator,
     RefreshControl,
     Alert,
@@ -20,288 +21,255 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../service/api_calls';
 
-interface Seller {
-    userID: number;
+interface Product {
+    productID: number;
     name: string;
-    email: string;
-    phone: string;
-    business_name: string;
-    approval_status: 'pending' | 'approved' | 'rejected' | 'suspended';
-    total_products: number;
-    total_orders: number;
+    description: string;
+    price: number;
+    condition: string;
+    quantity: number;
+    categoryID: number | null;
+    categoryName: string;
+    image_path: string;
+    status: 'pending' | 'approved' | 'rejected';
     created_at: string;
+    can_display: number;
+    seller_active: number;
+    sellerName: string;
+    sellerEmail: string;
+    moderation_notes?: string;
 }
 
-interface SellerDetails extends Seller {
-    business_address: string;
-    business_phone: string;
-    business_email: string;
-    tax_id: string;
-    bank_account: string;
-    approved_products: number;
-    pending_products: number;
-    rejected_products: number;
-    rejected_reason?: string;
-    approved_at?: string;
+interface ProductStats {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
 }
 
-const Admin_Seller_Management = ({ navigation }: any) => {
+const Admin_Product_Management = ({ navigation }: any) => {
     const { user, isAuthenticated } = useAuth();
-    const [sellers, setSellers] = useState<Seller[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [stats, setStats] = useState<ProductStats>({
+        total: 0,
+        approved: 0,
+        pending: 0,
+        rejected: 0
+    });
     
     // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalSellers, setTotalSellers] = useState(0);
+    const [totalProducts, setTotalProducts] = useState(0);
     const limit = 15;
-
-    // Stats
-    const [stats, setStats] = useState({
-        total: 0,
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        suspended: 0
-    });
 
     // Modals
     const [showViewModal, setShowViewModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showActionModal, setShowActionModal] = useState(false);
-    const [selectedSeller, setSelectedSeller] = useState<SellerDetails | null>(null);
-    const [actionType, setActionType] = useState<'approve' | 'reject' | 'suspend' | 'restore' | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [actionType, setActionType] = useState<'approve' | 'reject' | 'hide' | 'show' | 'delete' | null>(null);
     const [actionReason, setActionReason] = useState('');
-    const [editForm, setEditForm] = useState({
-        business_name: '',
-        business_address: '',
-        business_phone: '',
-        business_email: '',
-        phone: ''
-    });
     const [processingId, setProcessingId] = useState<number | null>(null);
+
+    // Edit Form
+    const [editForm, setEditForm] = useState({
+        name: '',
+        description: '',
+        price: '',
+        quantity: '',
+        condition: 'Normal',
+        categoryID: '',
+        status: ''
+    });
+
+    const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
 
     useEffect(() => {
         if (isAuthenticated) {
-            fetchSellers();
+            fetchProducts();
         }
     }, [isAuthenticated, page, statusFilter]);
 
-    const fetchSellers = async () => {
+    const fetchProducts = async () => {
         try {
             setLoading(true);
-            const response = await apiService.getSellersForAdmin(page, limit, searchQuery, statusFilter);
+            const response = await apiService.getProductsForAdmin(page, limit, searchQuery, statusFilter);
             if (response && response.success) {
-                setSellers(response.data || []);
+                setProducts(response.data || []);
+                setStats(response.stats || { total: 0, approved: 0, pending: 0, rejected: 0 });
                 setTotalPages(response.pagination?.totalPages || 1);
-                setTotalSellers(response.pagination?.total || 0);
+                setTotalProducts(response.pagination?.total || 0);
             } else {
-                setSellers([]);
+                setProducts([]);
             }
         } catch (error) {
-            console.error('Error fetching sellers:', error);
-            Alert.alert('Error', 'Failed to load sellers');
+            console.error('Error fetching products:', error);
+            Alert.alert('Error', 'Failed to load products');
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchStats = async () => {
-        try {
-            // Get counts for each status
-            const statuses = ['pending', 'approved', 'rejected', 'suspended'];
-            const counts: any = { total: 0 };
-            for (const status of statuses) {
-                const response = await apiService.getSellersForAdmin(1, 1, '', status);
-                if (response && response.success) {
-                    counts[status] = response.pagination?.total || 0;
-                    counts.total += counts[status];
-                }
-            }
-            setStats({
-                total: counts.total,
-                pending: counts.pending || 0,
-                approved: counts.approved || 0,
-                rejected: counts.rejected || 0,
-                suspended: counts.suspended || 0
-            });
-        } catch (error) {
-            console.error('Error fetching stats:', error);
-        }
-    };
-
     const onRefresh = async () => {
         setRefreshing(true);
-        await Promise.all([fetchSellers(), fetchStats()]);
+        await fetchProducts();
         setRefreshing(false);
     };
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
-
     const handleSearch = () => {
         setPage(1);
-        fetchSellers();
+        fetchProducts();
     };
 
-    const handleViewSeller = async (userID: number) => {
+    const handleViewProduct = async (productID: number) => {
         try {
-            const response = await apiService.getSellerDetailsForAdmin(userID);
+            const response = await apiService.getProductForAdmin(productID);
             if (response && response.success) {
-                setSelectedSeller(response.data);
+                setSelectedProduct(response.data);
                 setShowViewModal(true);
             } else {
-                Alert.alert('Error', 'Failed to load seller details');
+                Alert.alert('Error', 'Failed to load product details');
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to load seller details');
+            Alert.alert('Error', 'Failed to load product details');
         }
     };
 
-    const handleViewSellerProducts = (seller: Seller) => {
-        setShowViewModal(false);
-        navigation.navigate('AdminSellerProducts', { 
-            sellerID: seller.userID, 
-            sellerName: seller.business_name 
-        });
-    };
-
-    const handleViewSellerOrders = (seller: Seller) => {
-        setShowViewModal(false);
-        navigation.navigate('AdminSellerOrders', { 
-            sellerID: seller.userID, 
-            sellerName: seller.business_name 
-        });
-    };
-
-    const handleAction = (seller: Seller, action: 'approve' | 'reject' | 'suspend' | 'restore') => {
-        setSelectedSeller(seller as SellerDetails);
-        setActionType(action);
-        setActionReason('');
-        if (action === 'approve' || action === 'restore') {
-            // No reason needed for approve/restore
-            confirmAction();
-        } else {
-            setShowActionModal(true);
-        }
-    };
-
-    const confirmAction = async () => {
-        if (!selectedSeller || !actionType) return;
-
-        const actionNames = {
-            approve: 'approve',
-            reject: 'reject',
-            suspend: 'suspend',
-            restore: 'restore'
-        };
-
-        const confirmMessages = {
-            approve: `Approve "${selectedSeller.business_name}" as a seller?`,
-            reject: `Reject "${selectedSeller.business_name}"?`,
-            suspend: `Suspend "${selectedSeller.business_name}"?`,
-            restore: `Restore "${selectedSeller.business_name}"?`
-        };
-
-        Alert.alert(
-            'Confirm Action',
-            confirmMessages[actionType],
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: actionType.charAt(0).toUpperCase() + actionType.slice(1),
-                    onPress: async () => {
-                        try {
-                            setProcessingId(selectedSeller.userID);
-                            const payload: any = {
-                                userID: selectedSeller.userID,
-                                action: actionType
-                            };
-                            if (actionType === 'reject' || actionType === 'suspend') {
-                                payload.reason = actionReason;
-                            }
-                            await apiService.adminSellerAction(payload);
-                            Alert.alert('Success', `Seller ${actionType}d successfully`);
-                            setShowActionModal(false);
-                            await Promise.all([fetchSellers(), fetchStats()]);
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message || `Failed to ${actionType} seller`);
-                        } finally {
-                            setProcessingId(null);
-                            setSelectedSeller(null);
-                            setActionType(null);
-                        }
+    const handleAction = (product: Product, action: 'approve' | 'reject' | 'hide' | 'show' | 'delete') => {
+        if (action === 'delete') {
+            Alert.alert(
+                'Delete Product',
+                `Are you sure you want to permanently delete "${product.name}"?\n\nThis action cannot be undone.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: () => confirmAction(product, action)
                     }
-                }
-            ]
-        );
+                ]
+            );
+            return;
+        }
+
+        if (action === 'reject') {
+            setSelectedProduct(product);
+            setActionType(action);
+            setActionReason('');
+            setShowActionModal(true);
+            return;
+        }
+
+        confirmAction(product, action);
     };
 
-    const handleEditSeller = (seller: Seller) => {
-        setSelectedSeller(seller as SellerDetails);
+    const confirmAction = async (product: Product, action: 'approve' | 'reject' | 'hide' | 'show' | 'delete') => {
+        const actionLabels = {
+            approve: 'Approve',
+            reject: 'Reject',
+            hide: 'Hide',
+            show: 'Show',
+            delete: 'Delete'
+        };
+
+        if (action === 'reject' && !actionReason.trim()) {
+            Alert.alert('Error', 'Please provide a reason for rejection');
+            return;
+        }
+
+        try {
+            setProcessingId(product.productID);
+            await apiService.adminProductAction({
+                productID: product.productID,
+                action: action,
+                reason: action === 'reject' ? actionReason : undefined
+            });
+            Alert.alert('Success', `Product ${actionLabels[action].toLowerCase()}d successfully`);
+            setShowActionModal(false);
+            await fetchProducts();
+        } catch (error: any) {
+            Alert.alert('Error', error.message || `Failed to ${action} product`);
+        } finally {
+            setProcessingId(null);
+            setSelectedProduct(null);
+            setActionType(null);
+            setActionReason('');
+        }
+    };
+
+    const handleEditProduct = (product: Product) => {
+        setSelectedProduct(product);
         setEditForm({
-            business_name: seller.business_name || '',
-            business_address: (seller as SellerDetails).business_address || '',
-            business_phone: (seller as SellerDetails).business_phone || '',
-            business_email: (seller as SellerDetails).business_email || '',
-            phone: seller.phone || ''
+            name: product.name || '',
+            description: product.description || '',
+            price: product.price?.toString() || '',
+            quantity: product.quantity?.toString() || '',
+            condition: product.condition || 'Normal',
+            categoryID: product.categoryID?.toString() || '',
+            status: product.status || ''
         });
         setShowEditModal(true);
     };
 
     const handleSaveEdit = async () => {
-        if (!selectedSeller) return;
-        
-        if (!editForm.business_name.trim()) {
-            Alert.alert('Error', 'Business name is required');
+        if (!selectedProduct) return;
+
+        if (!editForm.name.trim()) {
+            Alert.alert('Error', 'Product name is required');
+            return;
+        }
+
+        const priceNum = parseFloat(editForm.price);
+        if (isNaN(priceNum) || priceNum <= 0) {
+            Alert.alert('Error', 'Valid price is required');
             return;
         }
 
         try {
-            await apiService.adminUpdateSeller(selectedSeller.userID, {
-                business_name: editForm.business_name.trim(),
-                business_address: editForm.business_address.trim(),
-                business_phone: editForm.business_phone.trim(),
-                business_email: editForm.business_email.trim(),
-                phone: editForm.phone.trim()
+            await apiService.adminUpdateProduct(selectedProduct.productID, {
+                name: editForm.name.trim(),
+                description: editForm.description.trim(),
+                price: priceNum,
+                quantity: parseInt(editForm.quantity) || 0,
+                condition: editForm.condition,
+                categoryID: parseInt(editForm.categoryID) || 0,
+                status: editForm.status
             });
-            Alert.alert('Success', 'Seller updated successfully');
+            Alert.alert('Success', 'Product updated successfully');
             setShowEditModal(false);
-            await Promise.all([fetchSellers(), fetchStats()]);
+            await fetchProducts();
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to update seller');
+            Alert.alert('Error', error.message || 'Failed to update product');
         }
     };
 
-    const handleDeleteSeller = (seller: Seller) => {
-        Alert.alert(
-            'Delete Seller',
-            `Are you sure you want to delete "${seller.business_name}"?\n\n⚠️ This will also remove all products and orders associated with this seller.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            setProcessingId(seller.userID);
-                            await apiService.adminDeleteSeller(seller.userID);
-                            Alert.alert('Success', 'Seller deleted successfully');
-                            await Promise.all([fetchSellers(), fetchStats()]);
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message || 'Failed to delete seller');
-                        } finally {
-                            setProcessingId(null);
-                        }
-                    }
-                }
-            ]
-        );
+    const getStatusConfig = (status: string) => {
+        switch (status) {
+            case 'approved':
+                return { label: 'Approved', color: '#4CAF50', icon: 'checkmark-circle' };
+            case 'pending':
+                return { label: 'Pending', color: '#FF9F43', icon: 'time-outline' };
+            case 'rejected':
+                return { label: 'Rejected', color: '#FF6B6B', icon: 'close-circle' };
+            default:
+                return { label: 'Unknown', color: '#999', icon: 'alert-circle' };
+        }
+    };
+
+    const getVisibilityStatus = (product: Product) => {
+        if (product.can_display === 0) {
+            return { label: 'Hidden by Mod', color: '#FF6B6B', icon: 'eye-off' };
+        }
+        if (product.seller_active === 0) {
+            return { label: 'Hidden by Seller', color: '#FF9F43', icon: 'pause-circle' };
+        }
+        return { label: 'Visible', color: '#4CAF50', icon: 'eye' };
     };
 
     const formatDate = (dateString: string) => {
@@ -309,88 +277,91 @@ const Admin_Seller_Management = ({ navigation }: any) => {
         return date.toLocaleDateString();
     };
 
-    const getStatusConfig = (status: string) => {
-        switch (status) {
-            case 'approved':
-                return { label: 'Active', color: '#4CAF50', icon: 'checkmark-circle' };
-            case 'pending':
-                return { label: 'Pending', color: '#FF9F43', icon: 'time-outline' };
-            case 'rejected':
-                return { label: 'Rejected', color: '#FF6B6B', icon: 'close-circle' };
-            case 'suspended':
-                return { label: 'Suspended', color: '#6C5CE7', icon: 'ban-outline' };
-            default:
-                return { label: 'Unknown', color: '#999', icon: 'alert-circle' };
-        }
-    };
-
     const renderStatsCard = () => (
         <View style={styles.statsRow}>
             <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{stats.total}</Text>
+                <Text style={[styles.statNumber, { color: '#333' }]}>{stats.total}</Text>
                 <Text style={styles.statLabel}>Total</Text>
+            </View>
+            <View style={styles.statCard}>
+                <Text style={[styles.statNumber, { color: '#4CAF50' }]}>{stats.approved}</Text>
+                <Text style={styles.statLabel}>Approved</Text>
             </View>
             <View style={styles.statCard}>
                 <Text style={[styles.statNumber, { color: '#FF9F43' }]}>{stats.pending}</Text>
                 <Text style={styles.statLabel}>Pending</Text>
             </View>
             <View style={styles.statCard}>
-                <Text style={[styles.statNumber, { color: '#4CAF50' }]}>{stats.approved}</Text>
-                <Text style={styles.statLabel}>Active</Text>
-            </View>
-            <View style={styles.statCard}>
-                <Text style={[styles.statNumber, { color: '#6C5CE7' }]}>{stats.suspended}</Text>
-                <Text style={styles.statLabel}>Suspended</Text>
+                <Text style={[styles.statNumber, { color: '#FF6B6B' }]}>{stats.rejected}</Text>
+                <Text style={styles.statLabel}>Rejected</Text>
             </View>
         </View>
     );
 
-    const renderSellerCard = ({ item }: { item: Seller }) => {
-        const statusConfig = getStatusConfig(item.approval_status);
-        const isProcessing = processingId === item.userID;
+    const renderProductCard = ({ item }: { item: Product }) => {
+        const statusConfig = getStatusConfig(item.status);
+        const visibility = getVisibilityStatus(item);
+        const imageUrl = item.image_path ? `${imageBaseUrl}${item.image_path}` : null;
+        const isProcessing = processingId === item.productID;
 
         return (
-            <View style={[styles.sellerCard, { borderLeftColor: statusConfig.color, borderLeftWidth: 4 }]}>
-                <View style={styles.sellerInfo}>
-                    <View style={styles.sellerHeader}>
-                        <View style={styles.nameContainer}>
-                            <Ionicons name="storefront-outline" size={18} color="#4CAF50" />
-                            <Text style={styles.sellerName}>{item.business_name}</Text>
+            <View style={[styles.productCard, { borderLeftColor: statusConfig.color, borderLeftWidth: 4 }]}>
+                <TouchableOpacity 
+                    style={styles.cardContent}
+                    onPress={() => handleViewProduct(item.productID)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.imageContainer}>
+                        {imageUrl ? (
+                            <Image source={{ uri: imageUrl }} style={styles.productImage} />
+                        ) : (
+                            <View style={[styles.productImage, styles.imagePlaceholder]}>
+                                <Ionicons name="image-outline" size={30} color="#ccc" />
+                            </View>
+                        )}
+                        <View style={[styles.visibilityBadge, { backgroundColor: visibility.color }]}>
+                            <Ionicons name={visibility.icon as any} size={10} color="#fff" />
+                            <Text style={styles.visibilityBadgeText}>{visibility.label}</Text>
                         </View>
-                        <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
+                    </View>
+
+                    <View style={styles.productInfo}>
+                        <Text style={styles.productName} numberOfLines={1}>
+                            {item.name}
+                        </Text>
+                        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+                        <View style={styles.productMeta}>
+                            <Text style={styles.productMetaText}>{item.categoryName || 'Uncategorized'}</Text>
+                            <Text style={styles.productMetaText}>Qty: {item.quantity}</Text>
+                        </View>
+                        <View style={styles.statusContainer}>
                             <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
-                            <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>
+                            <Text style={[styles.statusText, { color: statusConfig.color }]}>
                                 {statusConfig.label}
                             </Text>
                         </View>
+                        <Text style={styles.sellerName}>👤 {item.sellerName}</Text>
                     </View>
-                    <Text style={styles.sellerEmail}>{item.email}</Text>
-                    <View style={styles.sellerMeta}>
-                        <Text style={styles.sellerMetaText}>👤 {item.name}</Text>
-                        <Text style={styles.sellerMetaText}>📦 {item.total_products || 0} products</Text>
-                        <Text style={styles.sellerMetaText}>📋 {item.total_orders || 0} orders</Text>
-                        <Text style={styles.sellerMetaText}>📅 {formatDate(item.created_at)}</Text>
-                    </View>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.actionButtons}>
                     <TouchableOpacity 
                         style={[styles.actionButton, styles.viewButton]}
-                        onPress={() => handleViewSeller(item.userID)}
+                        onPress={() => handleViewProduct(item.productID)}
                     >
-                        <Ionicons name="eye-outline" size={16} color="#3498DB" />
+                        <Ionicons name="eye-outline" size={14} color="#3498DB" />
                         <Text style={styles.viewButtonText}>View</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
                         style={[styles.actionButton, styles.editButton]}
-                        onPress={() => handleEditSeller(item)}
+                        onPress={() => handleEditProduct(item)}
                     >
-                        <Ionicons name="create-outline" size={16} color="#4CAF50" />
+                        <Ionicons name="create-outline" size={14} color="#4CAF50" />
                         <Text style={styles.editButtonText}>Edit</Text>
                     </TouchableOpacity>
 
-                    {item.approval_status === 'pending' && (
+                    {item.status === 'pending' && (
                         <>
                             <TouchableOpacity 
                                 style={[styles.actionButton, styles.approveButton]}
@@ -401,7 +372,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
                                     <>
-                                        <Ionicons name="checkmark" size={16} color="#fff" />
+                                        <Ionicons name="checkmark" size={14} color="#fff" />
                                         <Text style={styles.actionButtonText}>Approve</Text>
                                     </>
                                 )}
@@ -411,41 +382,30 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                                 onPress={() => handleAction(item, 'reject')}
                                 disabled={isProcessing}
                             >
-                                <Ionicons name="close" size={16} color="#fff" />
+                                <Ionicons name="close" size={14} color="#fff" />
                                 <Text style={styles.actionButtonText}>Reject</Text>
                             </TouchableOpacity>
                         </>
                     )}
 
-                    {item.approval_status === 'suspended' && (
+                    {item.status !== 'pending' && (
                         <TouchableOpacity 
-                            style={[styles.actionButton, styles.restoreButton]}
-                            onPress={() => handleAction(item, 'restore')}
+                            style={[styles.actionButton, item.can_display === 1 ? styles.hideButton : styles.showButton]}
+                            onPress={() => handleAction(item, item.can_display === 1 ? 'hide' : 'show')}
                             disabled={isProcessing}
                         >
                             {isProcessing ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
                                 <>
-                                    <Ionicons name="refresh-outline" size={16} color="#fff" />
-                                    <Text style={styles.actionButtonText}>Restore</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                    )}
-
-                    {item.approval_status === 'approved' && (
-                        <TouchableOpacity 
-                            style={[styles.actionButton, styles.suspendButton]}
-                            onPress={() => handleAction(item, 'suspend')}
-                            disabled={isProcessing}
-                        >
-                            {isProcessing ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <>
-                                    <Ionicons name="ban-outline" size={16} color="#fff" />
-                                    <Text style={styles.actionButtonText}>Suspend</Text>
+                                    <Ionicons 
+                                        name={item.can_display === 1 ? "eye-off-outline" : "eye-outline"} 
+                                        size={14} 
+                                        color="#fff" 
+                                    />
+                                    <Text style={styles.actionButtonText}>
+                                        {item.can_display === 1 ? 'Hide' : 'Show'}
+                                    </Text>
                                 </>
                             )}
                         </TouchableOpacity>
@@ -453,13 +413,13 @@ const Admin_Seller_Management = ({ navigation }: any) => {
 
                     <TouchableOpacity 
                         style={[styles.actionButton, styles.deleteButton]}
-                        onPress={() => handleDeleteSeller(item)}
+                        onPress={() => handleAction(item, 'delete')}
                         disabled={isProcessing}
                     >
                         {isProcessing ? (
                             <ActivityIndicator size="small" color="#FF6B6B" />
                         ) : (
-                            <Ionicons name="trash-outline" size={16} color="#FF6B6B" />
+                            <Ionicons name="trash-outline" size={14} color="#FF6B6B" />
                         )}
                     </TouchableOpacity>
                 </View>
@@ -547,8 +507,8 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.storeTitle}>Seller Management</Text>
-                <Text style={styles.countBadge}>{totalSellers}</Text>
+                <Text style={styles.storeTitle}>Product Management</Text>
+                <Text style={styles.countBadge}>{totalProducts}</Text>
             </View>
 
             {/* Stats */}
@@ -560,7 +520,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                     <Ionicons name="search" size={20} color="#999" />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search sellers..."
+                        placeholder="Search products..."
                         placeholderTextColor="#999"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -591,7 +551,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
 
                     {showFilterDropdown && (
                         <View style={styles.filterDropdown}>
-                            {['all', 'pending', 'approved', 'rejected', 'suspended'].map((status) => (
+                            {['all', 'pending', 'approved', 'rejected'].map((status) => (
                                 <TouchableOpacity
                                     key={status}
                                     style={[
@@ -623,24 +583,24 @@ const Admin_Seller_Management = ({ navigation }: any) => {
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#4CAF50" />
-                    <Text style={styles.loadingText}>Loading sellers...</Text>
+                    <Text style={styles.loadingText}>Loading products...</Text>
                 </View>
-            ) : sellers.length === 0 ? (
+            ) : products.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Ionicons name="storefront-outline" size={80} color="#ccc" />
-                    <Text style={styles.emptyTitle}>No Sellers Found</Text>
+                    <Ionicons name="cube-outline" size={80} color="#ccc" />
+                    <Text style={styles.emptyTitle}>No Products Found</Text>
                     <Text style={styles.emptySubtext}>
                         {searchQuery.trim() 
-                            ? 'No sellers match your search.' 
-                            : 'No sellers registered yet.'}
+                            ? 'No products match your search.' 
+                            : 'No products have been listed yet.'}
                     </Text>
                 </View>
             ) : (
                 <>
                     <FlatList
-                        data={sellers}
-                        renderItem={renderSellerCard}
-                        keyExtractor={(item) => item.userID.toString()}
+                        data={products}
+                        renderItem={renderProductCard}
+                        keyExtractor={(item) => item.productID.toString()}
                         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
@@ -649,7 +609,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                 </>
             )}
 
-            {/* View Modal */}
+            {/* View Product Modal */}
             <Modal
                 visible={showViewModal}
                 transparent
@@ -661,124 +621,82 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                         style={styles.modalBackground}
                         onPress={() => setShowViewModal(false)}
                     />
-                    <View style={styles.modalContent}>
+                    <View style={styles.viewModalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Seller Details</Text>
+                            <Text style={styles.modalTitle}>Product Details</Text>
                             <TouchableOpacity onPress={() => setShowViewModal(false)}>
                                 <Ionicons name="close" size={24} color="#333" />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView showsVerticalScrollIndicator={false}>
-                            {selectedSeller && (
+                            {selectedProduct && (
                                 <View style={styles.modalBody}>
-                                    <View style={styles.modalAvatar}>
-                                        <View style={[styles.modalAvatarCircle, { backgroundColor: getStatusConfig(selectedSeller.approval_status).color }]}>
-                                            <Text style={styles.modalAvatarText}>
-                                                {selectedSeller.business_name?.substring(0, 2).toUpperCase() || '??'}
-                                            </Text>
-                                        </View>
-                                        <Text style={styles.modalBusinessName}>{selectedSeller.business_name}</Text>
-                                        <View style={[styles.modalStatusBadge, { backgroundColor: getStatusConfig(selectedSeller.approval_status).color + '20' }]}>
-                                            <Ionicons name={getStatusConfig(selectedSeller.approval_status).icon as any} size={14} color={getStatusConfig(selectedSeller.approval_status).color} />
-                                            <Text style={[styles.modalStatusText, { color: getStatusConfig(selectedSeller.approval_status).color }]}>
-                                                {getStatusConfig(selectedSeller.approval_status).label}
-                                            </Text>
-                                        </View>
+                                    <Image 
+                                        source={{ uri: `${imageBaseUrl}${selectedProduct.image_path}` }} 
+                                        style={styles.modalImage}
+                                        defaultSource={require('../assets/placeholder.png')}
+                                    />
+                                    
+                                    <Text style={styles.modalProductName}>{selectedProduct.name}</Text>
+                                    <Text style={styles.modalProductPrice}>${selectedProduct.price.toFixed(2)}</Text>
+
+                                    <View style={styles.modalRow}>
+                                        <Text style={styles.modalLabel}>Status:</Text>
+                                        <Text style={[styles.modalValue, { color: getStatusConfig(selectedProduct.status).color }]}>
+                                            {getStatusConfig(selectedProduct.status).label}
+                                        </Text>
                                     </View>
 
                                     <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Owner:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.name}</Text>
-                                    </View>
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Email:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.email}</Text>
-                                    </View>
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Phone:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.business_phone || 'N/A'}</Text>
-                                    </View>
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Address:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.business_address || 'N/A'}</Text>
+                                        <Text style={styles.modalLabel}>Category:</Text>
+                                        <Text style={styles.modalValue}>{selectedProduct.categoryName || 'Uncategorized'}</Text>
                                     </View>
 
-                                    <View style={styles.modalDivider} />
-
-                                    <Text style={styles.modalSectionTitle}>Business Details</Text>
                                     <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Business Email:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.business_email || 'N/A'}</Text>
+                                        <Text style={styles.modalLabel}>Condition:</Text>
+                                        <Text style={styles.modalValue}>{selectedProduct.condition}</Text>
                                     </View>
+
                                     <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Tax ID:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.tax_id || 'N/A'}</Text>
+                                        <Text style={styles.modalLabel}>Quantity:</Text>
+                                        <Text style={styles.modalValue}>{selectedProduct.quantity}</Text>
                                     </View>
+
                                     <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Bank Account:</Text>
-                                        <Text style={styles.modalValue}>{selectedSeller.bank_account || 'N/A'}</Text>
+                                        <Text style={styles.modalLabel}>Seller:</Text>
+                                        <Text style={styles.modalValue}>{selectedProduct.sellerName}</Text>
                                     </View>
 
-                                    <View style={styles.modalDivider} />
-
-                                    <Text style={styles.modalSectionTitle}>Store Statistics</Text>
-                                    <View style={styles.modalStatsRow}>
-                                        <View style={styles.modalStatItem}>
-                                            <Text style={styles.modalStatNumber}>{selectedSeller.approved_products || 0}</Text>
-                                            <Text style={styles.modalStatLabel}>Approved</Text>
-                                        </View>
-                                        <View style={styles.modalStatItem}>
-                                            <Text style={styles.modalStatNumber}>{selectedSeller.pending_products || 0}</Text>
-                                            <Text style={styles.modalStatLabel}>Pending</Text>
-                                        </View>
-                                        <View style={styles.modalStatItem}>
-                                            <Text style={styles.modalStatNumber}>{selectedSeller.rejected_products || 0}</Text>
-                                            <Text style={styles.modalStatLabel}>Rejected</Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.modalStatsRow}>
-                                        <View style={styles.modalStatItem}>
-                                            <Text style={styles.modalStatNumber}>{selectedSeller.total_orders || 0}</Text>
-                                            <Text style={styles.modalStatLabel}>Orders</Text>
-                                        </View>
+                                    <View style={styles.modalRow}>
+                                        <Text style={styles.modalLabel}>Visibility:</Text>
+                                        <Text style={[styles.modalValue, { color: getVisibilityStatus(selectedProduct).color }]}>
+                                            {getVisibilityStatus(selectedProduct).label}
+                                        </Text>
                                     </View>
 
-                                    {selectedSeller.rejected_reason && (
+                                    <View style={styles.modalRow}>
+                                        <Text style={styles.modalLabel}>Listed:</Text>
+                                        <Text style={styles.modalValue}>{formatDate(selectedProduct.created_at)}</Text>
+                                    </View>
+
+                                    {selectedProduct.moderation_notes && (
                                         <>
                                             <View style={styles.modalDivider} />
-                                            <Text style={styles.modalSectionTitle}>Rejection Reason</Text>
-                                            <Text style={styles.modalDescription}>{selectedSeller.rejected_reason}</Text>
+                                            <Text style={styles.modalSectionTitle}>Moderation Notes</Text>
+                                            <Text style={styles.modalDescription}>{selectedProduct.moderation_notes}</Text>
                                         </>
                                     )}
 
                                     <View style={styles.modalDivider} />
-                                    <Text style={styles.modalSectionTitle}>Joined</Text>
-                                    <Text style={styles.modalDate}>{formatDate(selectedSeller.created_at)}</Text>
-                                    {selectedSeller.approved_at && (
-                                        <Text style={styles.modalDate}>Approved: {formatDate(selectedSeller.approved_at)}</Text>
-                                    )}
+
+                                    <Text style={styles.modalSectionTitle}>Description</Text>
+                                    <Text style={styles.modalDescription}>
+                                        {selectedProduct.description || 'No description provided.'}
+                                    </Text>
                                 </View>
                             )}
                         </ScrollView>
-
-                        <View style={styles.viewModalActions}>
-                            <TouchableOpacity 
-                                style={[styles.viewModalActionButton, styles.viewProductsButton]}
-                                onPress={() => selectedSeller && handleViewSellerProducts(selectedSeller)}
-                            >
-                                <Ionicons name="cube-outline" size={20} color="#fff" />
-                                <Text style={styles.viewModalActionText}>View Products</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={[styles.viewModalActionButton, styles.viewOrdersButton]}
-                                onPress={() => selectedSeller && handleViewSellerOrders(selectedSeller)}
-                            >
-                                <Ionicons name="receipt-outline" size={20} color="#fff" />
-                                <Text style={styles.viewModalActionText}>View Orders</Text>
-                            </TouchableOpacity>
-                        </View>
 
                         <TouchableOpacity 
                             style={styles.modalCloseButton}
@@ -790,7 +708,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Edit Modal */}
+            {/* Edit Product Modal */}
             <Modal
                 visible={showEditModal}
                 transparent
@@ -809,7 +727,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                     >
                         <View style={styles.editModalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Edit Seller</Text>
+                                <Text style={styles.modalTitle}>Edit Product</Text>
                                 <TouchableOpacity onPress={() => setShowEditModal(false)}>
                                     <Ionicons name="close" size={24} color="#333" />
                                 </TouchableOpacity>
@@ -822,64 +740,93 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                             >
                                 <View style={styles.editForm}>
                                     <View style={styles.inputGroup}>
-                                        <Text style={styles.label}>Business Name *</Text>
+                                        <Text style={styles.label}>Product Name *</Text>
                                         <TextInput
                                             style={styles.input}
-                                            value={editForm.business_name}
-                                            onChangeText={(text) => setEditForm({ ...editForm, business_name: text })}
-                                            placeholder="Business name"
-                                            returnKeyType="next"
+                                            value={editForm.name}
+                                            onChangeText={(text) => setEditForm({ ...editForm, name: text })}
+                                            placeholder="Product name"
                                         />
                                     </View>
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={styles.label}>Business Address</Text>
+                                        <Text style={styles.label}>Description</Text>
                                         <TextInput
                                             style={[styles.input, styles.textArea]}
-                                            value={editForm.business_address}
-                                            onChangeText={(text) => setEditForm({ ...editForm, business_address: text })}
-                                            placeholder="Business address"
+                                            value={editForm.description}
+                                            onChangeText={(text) => setEditForm({ ...editForm, description: text })}
+                                            placeholder="Description"
                                             multiline
-                                            numberOfLines={2}
-                                            returnKeyType="next"
+                                            numberOfLines={3}
                                         />
                                     </View>
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={styles.label}>Business Phone</Text>
+                                        <Text style={styles.label}>Price *</Text>
                                         <TextInput
                                             style={styles.input}
-                                            value={editForm.business_phone}
-                                            onChangeText={(text) => setEditForm({ ...editForm, business_phone: text })}
-                                            placeholder="Business phone"
-                                            keyboardType="phone-pad"
-                                            returnKeyType="next"
+                                            value={editForm.price}
+                                            onChangeText={(text) => setEditForm({ ...editForm, price: text })}
+                                            placeholder="0.00"
+                                            keyboardType="decimal-pad"
                                         />
                                     </View>
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={styles.label}>Business Email</Text>
+                                        <Text style={styles.label}>Quantity</Text>
                                         <TextInput
                                             style={styles.input}
-                                            value={editForm.business_email}
-                                            onChangeText={(text) => setEditForm({ ...editForm, business_email: text })}
-                                            placeholder="Business email"
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
-                                            returnKeyType="next"
+                                            value={editForm.quantity}
+                                            onChangeText={(text) => setEditForm({ ...editForm, quantity: text })}
+                                            placeholder="Quantity"
+                                            keyboardType="number-pad"
                                         />
                                     </View>
 
                                     <View style={styles.inputGroup}>
-                                        <Text style={styles.label}>Owner Phone</Text>
-                                        <TextInput
-                                            style={styles.input}
-                                            value={editForm.phone}
-                                            onChangeText={(text) => setEditForm({ ...editForm, phone: text })}
-                                            placeholder="Owner phone"
-                                            keyboardType="phone-pad"
-                                            returnKeyType="done"
-                                        />
+                                        <Text style={styles.label}>Condition</Text>
+                                        <View style={styles.conditionContainer}>
+                                            {['Excellent', 'Good', 'Normal', 'Subpar'].map((cond) => (
+                                                <TouchableOpacity
+                                                    key={cond}
+                                                    style={[
+                                                        styles.conditionChip,
+                                                        editForm.condition === cond && styles.conditionChipActive
+                                                    ]}
+                                                    onPress={() => setEditForm({ ...editForm, condition: cond })}
+                                                >
+                                                    <Text style={[
+                                                        styles.conditionChipText,
+                                                        editForm.condition === cond && styles.conditionChipTextActive
+                                                    ]}>
+                                                        {cond}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.label}>Status</Text>
+                                        <View style={styles.statusSelector}>
+                                            {['pending', 'approved', 'rejected'].map((status) => (
+                                                <TouchableOpacity
+                                                    key={status}
+                                                    style={[
+                                                        styles.statusChip,
+                                                        editForm.status === status && styles.statusChipActive
+                                                    ]}
+                                                    onPress={() => setEditForm({ ...editForm, status: status })}
+                                                >
+                                                    <Text style={[
+                                                        styles.statusChipText,
+                                                        editForm.status === status && styles.statusChipTextActive
+                                                    ]}>
+                                                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
                                     </View>
                                 </View>
                             </ScrollView>
@@ -903,7 +850,7 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Action Modal (Reject/Suspend Reason) */}
+            {/* Action Modal (Reject Reason) */}
             <Modal
                 visible={showActionModal}
                 transparent
@@ -921,21 +868,19 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                     >
                         <View style={styles.actionModalInner}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>
-                                    {actionType === 'reject' ? 'Reject Seller' : 'Suspend Seller'}
-                                </Text>
+                                <Text style={styles.modalTitle}>Reject Product</Text>
                                 <TouchableOpacity onPress={() => setShowActionModal(false)}>
                                     <Ionicons name="close" size={24} color="#333" />
                                 </TouchableOpacity>
                             </View>
 
                             <Text style={styles.actionModalSubtitle}>
-                                Please provide a reason for {actionType === 'reject' ? 'rejecting' : 'suspending'} "{selectedSeller?.business_name}":
+                                Please provide a reason for rejecting "{selectedProduct?.name}":
                             </Text>
 
                             <TextInput
                                 style={styles.actionInput}
-                                placeholder="Enter reason..."
+                                placeholder="Enter rejection reason..."
                                 placeholderTextColor="#999"
                                 value={actionReason}
                                 onChangeText={setActionReason}
@@ -952,11 +897,9 @@ const Admin_Seller_Management = ({ navigation }: any) => {
                                 </TouchableOpacity>
                                 <TouchableOpacity 
                                     style={[styles.actionModalButton, styles.actionModalSubmit]}
-                                    onPress={confirmAction}
+                                    onPress={() => selectedProduct && confirmAction(selectedProduct, 'reject')}
                                 >
-                                    <Text style={styles.actionModalSubmitText}>
-                                        {actionType === 'reject' ? 'Reject' : 'Suspend'}
-                                    </Text>
+                                    <Text style={styles.actionModalSubmitText}>Reject</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -1118,10 +1061,10 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 12,
     },
-    sellerCard: {
+    productCard: {
         backgroundColor: '#fff',
         borderRadius: 12,
-        padding: 14,
+        padding: 12,
         marginBottom: 10,
         borderWidth: 1,
         borderColor: '#e8e8e8',
@@ -1132,51 +1075,79 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
     },
-    sellerInfo: {
-        marginBottom: 10,
-    },
-    sellerHeader: {
+    cardContent: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 2,
     },
-    nameContainer: {
+    imageContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: '#f5f5f5',
+        position: 'relative',
+    },
+    productImage: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    visibilityBadge: {
+        position: 'absolute',
+        bottom: 4,
+        left: 4,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        gap: 2,
     },
-    sellerName: {
-        fontSize: 16,
+    visibilityBadgeText: {
+        fontSize: 8,
+        color: '#fff',
         fontWeight: 'bold',
+    },
+    productInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    productName: {
+        fontSize: 14,
+        fontWeight: '600',
         color: '#333',
     },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 12,
-        gap: 4,
-    },
-    statusBadgeText: {
-        fontSize: 11,
-        fontWeight: '600',
-    },
-    sellerEmail: {
-        fontSize: 13,
-        color: '#666',
-        marginBottom: 2,
-    },
-    sellerMeta: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
+    productPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#4CAF50',
         marginTop: 2,
     },
-    sellerMetaText: {
+    productMeta: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 2,
+    },
+    productMetaText: {
         fontSize: 11,
         color: '#999',
+    },
+    statusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: '500',
+        marginLeft: 4,
+    },
+    sellerName: {
+        fontSize: 11,
+        color: '#999',
+        marginTop: 2,
     },
     actionButtons: {
         flexDirection: 'row',
@@ -1184,44 +1155,17 @@ const styles = StyleSheet.create({
         gap: 6,
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
-        paddingTop: 10,
+        paddingTop: 8,
+        marginTop: 8,
         flexWrap: 'wrap',
     },
     actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 6,
-        gap: 4,
-    },
-
-    // VIEW MODAL ACTIONS
-    viewModalActions: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        gap: 10,
-        marginBottom: 10,
-    },
-    viewModalActionButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 10,
-        gap: 8,
-    },
-    viewProductsButton: {
-        backgroundColor: '#4CAF50',
-    },
-    viewOrdersButton: {
-        backgroundColor: '#3498DB',
-    },
-    viewModalActionText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
+        paddingVertical: 4,
+        borderRadius: 4,
+        gap: 3,
     },
     viewButton: {
         backgroundColor: '#e3f2fd',
@@ -1229,7 +1173,7 @@ const styles = StyleSheet.create({
         borderColor: '#3498DB',
     },
     viewButtonText: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#3498DB',
         fontWeight: '500',
     },
@@ -1239,7 +1183,7 @@ const styles = StyleSheet.create({
         borderColor: '#4CAF50',
     },
     editButtonText: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#4CAF50',
         fontWeight: '500',
     },
@@ -1253,15 +1197,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#FF6B6B',
     },
-    restoreButton: {
+    hideButton: {
+        backgroundColor: '#FF9F43',
+        borderWidth: 1,
+        borderColor: '#FF9F43',
+    },
+    showButton: {
         backgroundColor: '#4CAF50',
         borderWidth: 1,
         borderColor: '#4CAF50',
-    },
-    suspendButton: {
-        backgroundColor: '#6C5CE7',
-        borderWidth: 1,
-        borderColor: '#6C5CE7',
     },
     deleteButton: {
         backgroundColor: '#fff5f5',
@@ -1270,7 +1214,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
     },
     actionButtonText: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#fff',
         fontWeight: '500',
     },
@@ -1358,7 +1302,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         color: '#999',
     },
-
     // Modals
     modalOverlay: {
         flex: 1,
@@ -1368,11 +1311,11 @@ const styles = StyleSheet.create({
     modalBackground: {
         flex: 1,
     },
-    modalContent: {
+    viewModalContent: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        maxHeight: '85%',
+        height: '88%',
         paddingBottom: 20,
     },
     modalHeader: {
@@ -1392,39 +1335,23 @@ const styles = StyleSheet.create({
     modalBody: {
         padding: 20,
     },
-    modalAvatar: {
-        alignItems: 'center',
-        marginBottom: 16,
+    modalImage: {
+        width: '100%',
+        height: 200,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 10,
+        marginBottom: 12,
     },
-    modalAvatarCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    modalAvatarText: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    modalBusinessName: {
-        fontSize: 18,
+    modalProductName: {
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
     },
-    modalStatusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 12,
-        gap: 4,
-    },
-    modalStatusText: {
-        fontSize: 13,
-        fontWeight: '600',
+    modalProductPrice: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#4CAF50',
+        marginTop: 2,
     },
     modalRow: {
         flexDirection: 'row',
@@ -1433,7 +1360,7 @@ const styles = StyleSheet.create({
     modalLabel: {
         fontSize: 14,
         color: '#666',
-        width: 100,
+        width: 90,
         fontWeight: '500',
     },
     modalValue: {
@@ -1444,7 +1371,7 @@ const styles = StyleSheet.create({
     modalDivider: {
         height: 1,
         backgroundColor: '#e8e8e8',
-        marginVertical: 10,
+        marginVertical: 12,
     },
     modalSectionTitle: {
         fontSize: 15,
@@ -1452,33 +1379,10 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 6,
     },
-    modalStatsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: 4,
-    },
-    modalStatItem: {
-        alignItems: 'center',
-    },
-    modalStatNumber: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    modalStatLabel: {
-        fontSize: 12,
-        color: '#999',
-    },
     modalDescription: {
         fontSize: 14,
         color: '#555',
-        lineHeight: 20,
-        marginTop: 4,
-    },
-    modalDate: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 2,
+        lineHeight: 22,
     },
     modalCloseButton: {
         backgroundColor: '#DC3545',
@@ -1493,7 +1397,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-
     // Edit Modal
     editModalOverlay: {
         flex: 1,
@@ -1515,7 +1418,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        height: '88%',  // 88% of screen height
+        height: '88%',
         paddingBottom: 20,
     },
     editModalScrollContent: {
@@ -1526,6 +1429,78 @@ const styles = StyleSheet.create({
     editForm: {
         marginTop: 8,
         paddingBottom: 20,
+    },
+    inputGroup: {
+        marginBottom: 14,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#555',
+        marginBottom: 4,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 15,
+        color: '#333',
+        backgroundColor: '#f8f9fa',
+    },
+    textArea: {
+        minHeight: 80,
+        textAlignVertical: 'top',
+    },
+    conditionContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+    },
+    conditionChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        backgroundColor: '#f0f0f0',
+        borderWidth: 1,
+        borderColor: '#ddd',
+    },
+    conditionChipActive: {
+        backgroundColor: '#e8f5e9',
+        borderColor: '#4CAF50',
+    },
+    conditionChipText: {
+        fontSize: 13,
+        color: '#666',
+    },
+    conditionChipTextActive: {
+        color: '#4CAF50',
+        fontWeight: '500',
+    },
+    statusSelector: {
+        flexDirection: 'row',
+        gap: 6,
+    },
+    statusChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 16,
+        backgroundColor: '#f0f0f0',
+        borderWidth: 1,
+        borderColor: '#ddd',
+    },
+    statusChipActive: {
+        backgroundColor: '#e8f5e9',
+        borderColor: '#4CAF50',
+    },
+    statusChipText: {
+        fontSize: 13,
+        color: '#666',
+    },
+    statusChipTextActive: {
+        color: '#4CAF50',
+        fontWeight: '500',
     },
     editModalFooter: {
         flexDirection: 'row',
@@ -1557,38 +1532,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    editModalInner: {
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 20,
-        paddingBottom: 34,
-        maxHeight: '80%',
-    },
-    inputGroup: {
-        marginBottom: 14,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#555',
-        marginBottom: 4,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontSize: 15,
-        color: '#333',
-        backgroundColor: '#f8f9fa',
-    },
-    textArea: {
-        minHeight: 60,
-        textAlignVertical: 'top',
-    },
-
     // Action Modal
     actionModalContent: {
         flex: 1,
@@ -1648,4 +1591,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Admin_Seller_Management;
+export default Admin_Product_Management;

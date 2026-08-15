@@ -29,6 +29,9 @@ interface User {
     registration_date: string;
     product_count?: number;
     order_count?: number;
+    total_expenses?: number;
+    total_sales?: number;
+    default_address?: string;
 }
 
 interface UserDetails extends User {
@@ -454,12 +457,12 @@ const Admin_User_Management = ({ navigation }: any) => {
                 animationType="slide"
                 onRequestClose={() => setShowViewModal(false)}
             >
-                <View style={styles.modalOverlay}>
+                <View style={styles.viewModalOverlay}>
                     <TouchableOpacity 
-                        style={styles.modalBackground}
+                        style={styles.viewModalBackdrop}
                         onPress={() => setShowViewModal(false)}
                     />
-                    <View style={styles.modalContent}>
+                    <View style={styles.viewModalContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>User Details</Text>
                             <TouchableOpacity onPress={() => setShowViewModal(false)}>
@@ -481,26 +484,52 @@ const Admin_User_Management = ({ navigation }: any) => {
                                                 {selectedUser.role}
                                             </Text>
                                         </View>
+                                        <Text style={styles.modalName}>{selectedUser.name}</Text>
+                                        <Text style={styles.modalEmail}>{selectedUser.email}</Text>
+                                        <Text style={styles.modalPhone}>{selectedUser.phone || 'No phone'}</Text>
                                     </View>
+
+                                    {/* Buyer Stats */}
+                                    <View style={styles.modalStatsSection}>
+                                        <Text style={styles.modalSectionTitle}>🛒 Buyer Stats</Text>
+                                        <View style={styles.modalStatsRow}>
+                                            <View style={styles.modalStatItem}>
+                                                <Text style={styles.modalStatNumber}>{selectedUser.order_count || 0}</Text>
+                                                <Text style={styles.modalStatLabel}>Total Orders</Text>
+                                            </View>
+                                            <View style={styles.modalStatItem}>
+                                                <Text style={styles.modalStatNumber}>
+                                                    ${(selectedUser.total_expenses || 0).toFixed(2)}
+                                                </Text>
+                                                <Text style={styles.modalStatLabel}>Total Expenses</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+
+                                    {/* Seller Stats (only if role is Seller) */}
+                                    {selectedUser.role === 'Seller' && (
+                                        <View style={styles.modalStatsSection}>
+                                            <Text style={styles.modalSectionTitle}>🏪 Seller Stats</Text>
+                                            <View style={styles.modalStatsRow}>
+                                                <View style={styles.modalStatItem}>
+                                                    <Text style={styles.modalStatNumber}>{selectedUser.product_count || 0}</Text>
+                                                    <Text style={styles.modalStatLabel}>Total Products</Text>
+                                                </View>
+                                                <View style={styles.modalStatItem}>
+                                                    <Text style={styles.modalStatNumber}>
+                                                        ${(selectedUser.total_sales || 0).toFixed(2)}
+                                                    </Text>
+                                                    <Text style={styles.modalStatLabel}>Total Sales</Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    <View style={styles.modalDivider} />
 
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>User ID:</Text>
                                         <Text style={styles.modalValue}>#{selectedUser.userID}</Text>
-                                    </View>
-
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Name:</Text>
-                                        <Text style={styles.modalValue}>{selectedUser.name}</Text>
-                                    </View>
-
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Email:</Text>
-                                        <Text style={styles.modalValue}>{selectedUser.email}</Text>
-                                    </View>
-
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Phone:</Text>
-                                        <Text style={styles.modalValue}>{selectedUser.phone || 'N/A'}</Text>
                                     </View>
 
                                     <View style={styles.modalRow}>
@@ -513,21 +542,6 @@ const Admin_User_Management = ({ navigation }: any) => {
                                             <Text style={styles.modalLabel}>Address:</Text>
                                             <Text style={styles.modalValue}>{selectedUser.default_address}</Text>
                                         </View>
-                                    )}
-
-                                    {selectedUser.role === 'Seller' && (
-                                        <>
-                                            <View style={styles.modalDivider} />
-                                            <Text style={styles.modalSectionTitle}>Seller Stats</Text>
-                                            <View style={styles.modalRow}>
-                                                <Text style={styles.modalLabel}>Products:</Text>
-                                                <Text style={styles.modalValue}>{selectedUser.product_count || 0}</Text>
-                                            </View>
-                                            <View style={styles.modalRow}>
-                                                <Text style={styles.modalLabel}>Orders:</Text>
-                                                <Text style={styles.modalValue}>{selectedUser.order_count || 0}</Text>
-                                            </View>
-                                        </>
                                     )}
                                 </View>
                             )}
@@ -550,16 +564,17 @@ const Admin_User_Management = ({ navigation }: any) => {
                 animationType="slide"
                 onRequestClose={() => setShowEditModal(false)}
             >
-                <View style={styles.modalOverlay}>
+                <View style={styles.editModalOverlay}>
                     <TouchableOpacity 
-                        style={styles.modalBackground}
+                        style={styles.editModalBackdrop}
                         onPress={() => setShowEditModal(false)}
                     />
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={styles.editModalContent}
+                        style={styles.editModalContainer}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
                     >
-                        <View style={styles.editModalInner}>
+                        <View style={styles.editModalContent}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>Edit User</Text>
                                 <TouchableOpacity onPress={() => setShowEditModal(false)}>
@@ -567,7 +582,11 @@ const Admin_User_Management = ({ navigation }: any) => {
                                 </TouchableOpacity>
                             </View>
 
-                            <ScrollView showsVerticalScrollIndicator={false}>
+                            <ScrollView 
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.editModalScrollContent}
+                                keyboardShouldPersistTaps="handled"
+                            >
                                 <View style={styles.editForm}>
                                     <View style={styles.inputGroup}>
                                         <Text style={styles.label}>Name *</Text>
@@ -576,6 +595,7 @@ const Admin_User_Management = ({ navigation }: any) => {
                                             value={editForm.name}
                                             onChangeText={(text) => setEditForm({ ...editForm, name: text })}
                                             placeholder="Full name"
+                                            returnKeyType="next"
                                         />
                                     </View>
 
@@ -588,6 +608,7 @@ const Admin_User_Management = ({ navigation }: any) => {
                                             placeholder="email@example.com"
                                             keyboardType="email-address"
                                             autoCapitalize="none"
+                                            returnKeyType="next"
                                         />
                                     </View>
 
@@ -599,6 +620,7 @@ const Admin_User_Management = ({ navigation }: any) => {
                                             onChangeText={(text) => setEditForm({ ...editForm, phone: text })}
                                             placeholder="+8801234567890"
                                             keyboardType="phone-pad"
+                                            returnKeyType="next"
                                         />
                                     </View>
 
@@ -967,6 +989,76 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         color: '#999',
     },
+    // ============================================================
+    // VIEW USER MODAL - FULL SCREEN
+    // ============================================================
+    viewModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    viewModalBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    viewModalContent: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        height: '88%',
+        paddingBottom: 20,
+    },
+    modalName: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 4,
+    },
+    modalEmail: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 2,
+    },
+    modalPhone: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 2,
+    },
+    modalStatsSection: {
+        marginBottom: 12,
+    },
+    modalStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 4,
+        marginBottom: 4,
+    },
+    modalStatItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    modalStatNumber: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    modalStatLabel: {
+        fontSize: 11,
+        color: '#999',
+    },
+    modalRoleBadge: {
+        paddingHorizontal: 14,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginTop: 4,
+    },
+    modalRoleBadgeText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
     // Modal
     modalOverlay: {
         flex: 1,
@@ -1017,15 +1109,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    modalRoleBadge: {
-        paddingHorizontal: 14,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    modalRoleBadgeText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
     modalRow: {
         flexDirection: 'row',
         paddingVertical: 4,
@@ -1065,40 +1148,70 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Edit Modal
-    editModalContent: {
+    // ============================================================
+    // EDIT USER MODAL - FULL SCREEN
+    // ============================================================
+    editModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    editModalBackdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    editModalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
     },
-    editModalInner: {
+    editModalContent: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        padding: 20,
-        paddingBottom: 34,
-        maxHeight: '80%',
+        height: '88%',
+        paddingBottom: 20,
+    },
+    editModalScrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        flexGrow: 1,
     },
     editForm: {
         marginTop: 8,
+        paddingBottom: 20,
     },
-    inputGroup: {
-        marginBottom: 14,
+    editModalFooter: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+        gap: 10,
     },
-    label: {
-        fontSize: 14,
+    editModalButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    editModalCancel: {
+        backgroundColor: '#f0f0f0',
+    },
+    editModalCancelText: {
+        color: '#666',
+        fontSize: 16,
         fontWeight: '500',
-        color: '#555',
-        marginBottom: 4,
     },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        fontSize: 15,
-        color: '#333',
-        backgroundColor: '#f8f9fa',
+    editModalSave: {
+        backgroundColor: '#DC3545',
+    },
+    editModalSaveText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     roleSelector: {
         flexDirection: 'row',
@@ -1124,32 +1237,32 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
         fontWeight: '600',
     },
-    editModalFooter: {
-        flexDirection: 'row',
-        marginTop: 16,
-        gap: 10,
+    editModalInner: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: 34,
+        maxHeight: '80%',
     },
-    editModalButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 10,
-        alignItems: 'center',
+    inputGroup: {
+        marginBottom: 14,
     },
-    editModalCancel: {
-        backgroundColor: '#f0f0f0',
-    },
-    editModalCancelText: {
-        color: '#666',
-        fontSize: 16,
+    label: {
+        fontSize: 14,
         fontWeight: '500',
+        color: '#555',
+        marginBottom: 4,
     },
-    editModalSave: {
-        backgroundColor: '#DC3545',
-    },
-    editModalSaveText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+    input: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 15,
+        color: '#333',
+        backgroundColor: '#f8f9fa',
     },
 });
 

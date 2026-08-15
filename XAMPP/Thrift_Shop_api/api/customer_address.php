@@ -39,9 +39,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch all addresses for user
-    // ============================================================
+    
     if ($method === 'GET') {
         $stmt = $conn->prepare("SELECT * FROM user_addresses WHERE userID = ? ORDER BY is_default DESC, created_at DESC");
         $stmt->execute([$userID]);
@@ -59,9 +59,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Add new address
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -106,9 +106,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // PUT: Update address
-    // ============================================================
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $addressID = intval($input['addressID'] ?? 0);
@@ -155,9 +155,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // DELETE: Remove address
-    // ============================================================
+    
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $addressID = intval($input['addressID'] ?? 0);

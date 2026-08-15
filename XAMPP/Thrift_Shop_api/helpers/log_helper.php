@@ -7,7 +7,7 @@
 require_once __DIR__ . '/../config/database.php';
 
 /**
- * Main logging function
+ * Main logging function - logs any moderation action
  * 
  * @param int $moderatorID - Who performed the action
  * @param string $action - The action performed (e.g., 'approve_seller', 'hide_product')
@@ -20,16 +20,13 @@ require_once __DIR__ . '/../config/database.php';
  */
 function logModerationAction($moderatorID, $action, $category, $targetUserID = null, $targetProductID = null, $details = null, $ipAddress = null) {
     try {
-        // Get database connection
         $db = Database::getInstance();
         $conn = $db->getConnection();
         
-        // If no IP provided, get from server
         if ($ipAddress === null) {
             $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
         }
         
-        // Insert into moderation_history
         $sql = "INSERT INTO moderation_history 
                 (moderatorID, targetUserID, targetProductID, action, action_category, details, ip_address) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -56,34 +53,144 @@ function logModerationAction($moderatorID, $action, $category, $targetUserID = n
     }
 }
 
+/**
+ * Log product edit with detailed changes
+ */
+function logProductEdit($moderatorID, $productID, $oldData, $newData) {
+    $updatedFields = [];
+    $changes = [];
+    
+    // Define fields to compare
+    $fields = ['name', 'description', 'price', 'quantity', 'condition', 'categoryID', 'status'];
+    foreach ($fields as $field) {
+        $oldVal = $oldData[$field] ?? null;
+        $newVal = $newData[$field] ?? null;
+        
+        // Convert to string for comparison
+        if ($oldVal != $newVal) {
+            $updatedFields[] = $field;
+            $changes[] = [
+                'field' => $field,
+                'old' => $oldVal,
+                'new' => $newVal
+            ];
+        }
+    }
+    
+    if (empty($updatedFields)) {
+        return logProductAction($moderatorID, 'edit_product', $productID, 'No changes made');
+    }
+    
+    // Create a readable summary
+    $summary = 'Updated: ' . implode(', ', $updatedFields);
+    $details = [
+        'summary' => $summary,
+        'changes' => $changes,
+        'updated_fields' => $updatedFields
+    ];
+    
+    return logProductAction($moderatorID, 'edit_product', $productID, json_encode($details));
+}
+
+/**
+ * Log seller edit with detailed changes
+ */
+function logSellerEdit($moderatorID, $targetUserID, $oldData, $newData) {
+    $updatedFields = [];
+    $changes = [];
+    
+    $fields = ['business_name', 'business_address', 'business_phone', 'business_email', 'phone'];
+    foreach ($fields as $field) {
+        $oldVal = $oldData[$field] ?? null;
+        $newVal = $newData[$field] ?? null;
+        
+        if ($oldVal != $newVal) {
+            $updatedFields[] = $field;
+            $changes[] = [
+                'field' => $field,
+                'old' => $oldVal,
+                'new' => $newVal
+            ];
+        }
+    }
+    
+    if (empty($updatedFields)) {
+        return logSellerAction($moderatorID, 'edit_seller', $targetUserID, 'No changes made');
+    }
+    
+    $summary = 'Updated: ' . implode(', ', $updatedFields);
+    $details = [
+        'summary' => $summary,
+        'changes' => $changes,
+        'updated_fields' => $updatedFields
+    ];
+    
+    return logSellerAction($moderatorID, 'edit_seller', $targetUserID, json_encode($details));
+}
+
+/**
+ * Log moderator edit with detailed changes
+ */
+function logModeratorEdit($moderatorID, $targetUserID, $oldData, $newData) {
+    $updatedFields = [];
+    $changes = [];
+    
+    $fields = ['name', 'email', 'phone'];
+    foreach ($fields as $field) {
+        $oldVal = $oldData[$field] ?? null;
+        $newVal = $newData[$field] ?? null;
+        
+        if ($oldVal != $newVal) {
+            $updatedFields[] = $field;
+            $changes[] = [
+                'field' => $field,
+                'old' => $oldVal,
+                'new' => $newVal
+            ];
+        }
+    }
+    
+    if (empty($updatedFields)) {
+        return logModeratorAction($moderatorID, 'edit_moderator', $targetUserID, 'No changes made');
+    }
+    
+    $summary = 'Updated: ' . implode(', ', $updatedFields);
+    $details = [
+        'summary' => $summary,
+        'changes' => $changes,
+        'updated_fields' => $updatedFields
+    ];
+    
+    return logModeratorAction($moderatorID, 'edit_moderator', $targetUserID, json_encode($details));
+}
+
+/**
+ * Log seller actions
+ */
 function logSellerAction($moderatorID, $action, $targetUserID, $details = null) {
     $validActions = ['approve_seller', 'reject_seller', 'suspend_seller', 'restore_seller', 'delete_seller', 'edit_seller'];
     if (!in_array($action, $validActions)) {
         error_log("Invalid seller action: $action");
         return false;
     }
-    
-    if (is_array($details)) {
-        $details = json_encode($details);
-    }
-    
     return logModerationAction($moderatorID, $action, 'seller', $targetUserID, null, $details);
 }
 
+/**
+ * Log product actions
+ */
 function logProductAction($moderatorID, $action, $targetProductID, $details = null) {
     $validActions = ['approve_product', 'reject_product', 'hide_product', 'show_product', 'delete_product', 'edit_product', 'add_note'];
     if (!in_array($action, $validActions)) {
         error_log("Invalid product action: $action");
         return false;
     }
-
-    if (is_array($details)) {
-        $details = json_encode($details);
-    }
-    
     return logModerationAction($moderatorID, $action, 'product', null, $targetProductID, $details);
 }
 
+/**
+ * Log user actions
+ */
 function logUserAction($moderatorID, $action, $targetUserID, $details = null) {
     $validActions = ['delete_user', 'edit_user', 'suspend_user', 'restore_user'];
     if (!in_array($action, $validActions)) {
@@ -93,6 +200,9 @@ function logUserAction($moderatorID, $action, $targetUserID, $details = null) {
     return logModerationAction($moderatorID, $action, 'user', $targetUserID, null, $details);
 }
 
+/**
+ * Log moderator actions
+ */
 function logModeratorAction($moderatorID, $action, $targetUserID, $details = null) {
     $validActions = ['add_moderator', 'remove_moderator', 'edit_moderator', 'update_permissions'];
     if (!in_array($action, $validActions)) {
@@ -102,6 +212,61 @@ function logModeratorAction($moderatorID, $action, $targetUserID, $details = nul
     return logModerationAction($moderatorID, $action, 'moderator', $targetUserID, null, $details);
 }
 
+/**
+ * Format details for display (human readable)
+ */
+function formatDetailsForDisplay($action, $details) {
+    if (!$details) return null;
+    
+    $data = json_decode($details, true);
+    if (!$data) return $details;
+    
+    // If there's a summary, use it
+    if (isset($data['summary'])) {
+        return $data['summary'];
+    }
+    
+    // Handle edit actions with changes
+    if (strpos($action, 'edit_') === 0) {
+        if (isset($data['updated_fields'])) {
+            return 'Updated: ' . implode(', ', $data['updated_fields']);
+        }
+        if (isset($data['old_values']) && isset($data['new_values'])) {
+            $changes = [];
+            foreach ($data['new_values'] as $field => $value) {
+                $old = $data['old_values'][$field] ?? 'N/A';
+                $changes[] = "$field: '$old' → '$value'";
+            }
+            return 'Changes: ' . implode(', ', $changes);
+        }
+    }
+    
+    // Handle reject/suspend
+    if (in_array($action, ['reject_seller', 'reject_product', 'suspend_seller'])) {
+        if (isset($data['reason'])) {
+            return 'Reason: ' . $data['reason'];
+        }
+        if (is_string($data)) {
+            return 'Reason: ' . $data;
+        }
+    }
+    
+    // Handle add_note
+    if ($action === 'add_note') {
+        if (isset($data['note'])) {
+            return 'Note: ' . $data['note'];
+        }
+        if (is_string($data)) {
+            return 'Note: ' . $data;
+        }
+    }
+    
+    return json_encode($data);
+}
+
+/**
+ * Get human-readable action labels
+ */
 function getActionLabel($action) {
     $labels = [
         // Seller actions
@@ -137,6 +302,9 @@ function getActionLabel($action) {
     return $labels[$action] ?? ucfirst(str_replace('_', ' ', $action));
 }
 
+/**
+ * Get action color for UI
+ */
 function getActionColor($action) {
     $colors = [
         // Approvals - Green

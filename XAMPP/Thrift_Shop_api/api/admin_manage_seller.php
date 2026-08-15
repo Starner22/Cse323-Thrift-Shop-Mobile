@@ -4,7 +4,7 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, PUT, POST, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
 header("Content-Type: application/json");
 
@@ -54,9 +54,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch sellers or seller products
-    // ============================================================
+    
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
@@ -64,15 +64,10 @@ try {
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
         $sellerID = isset($_GET['sellerID']) ? intval($_GET['sellerID']) : 0;
-        $moderatorID = isset($_GET['moderatorID']) ? intval($_GET['moderatorID']) : 0;
         $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-        // ============================================================
-        // CHECK FOR PRODUCTS ACTION FIRST
-        // ============================================================
+        // Fetch products by seller
         if ($action === 'products' && $sellerID > 0) {
-            error_log("=== Fetching products for seller ID: $sellerID ===");
-            
             $sql = "SELECT 
                         p.productID, p.name, p.description, p.price, p.condition, 
                         p.quantity, p.categoryID, p.image_path, p.status, p.created_at,
@@ -86,28 +81,19 @@ try {
             $stmt = $conn->prepare($sql);
             $stmt->execute([$sellerID]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            error_log("Products found: " . count($products));
 
-            // Get total count
             $countSql = "SELECT COUNT(*) as total FROM product WHERE sellerID = ?";
             $countStmt = $conn->prepare($countSql);
             $countStmt->execute([$sellerID]);
             $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
             $totalCount = intval($totalResult['total']);
 
-            // Get status counts
             $statusSql = "SELECT status, COUNT(*) as count FROM product WHERE sellerID = ? GROUP BY status";
             $statusStmt = $conn->prepare($statusSql);
             $statusStmt->execute([$sellerID]);
             $statusCounts = $statusStmt->fetchAll(PDO::FETCH_ASSOC);
             
-            $stats = [
-                'total' => 0,
-                'approved' => 0,
-                'pending' => 0,
-                'rejected' => 0
-            ];
+            $stats = ['total' => 0, 'approved' => 0, 'pending' => 0, 'rejected' => 0];
             foreach ($statusCounts as $sc) {
                 $stats[$sc['status']] = intval($sc['count']);
                 $stats['total'] += intval($sc['count']);
@@ -144,9 +130,7 @@ try {
             exit();
         }
 
-        // ============================================================
-        // GET: Fetch single seller (if sellerID provided)
-        // ============================================================
+        // Fetch single seller
         if ($sellerID > 0) {
             $sql = "SELECT 
                         u.userID, u.name, u.email, u.phone, u.address, u.role, u.registration_date,
@@ -183,9 +167,7 @@ try {
             exit();
         }
 
-        // ============================================================
-        // GET: Fetch all sellers (default)
-        // ============================================================
+        // Fetch all sellers
         $whereClause = "WHERE sp.userID IS NOT NULL";
         $params = array();
         
@@ -202,17 +184,12 @@ try {
             $params[] = $filter;
         }
 
-        // Get total count
-        $countSql = "SELECT COUNT(*) as total 
-                     FROM user u 
-                     INNER JOIN seller_profile sp ON u.userID = sp.userID 
-                     " . $whereClause;
+        $countSql = "SELECT COUNT(*) as total FROM user u INNER JOIN seller_profile sp ON u.userID = sp.userID " . $whereClause;
         $countStmt = $conn->prepare($countSql);
         $countStmt->execute($params);
         $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
         $totalCount = intval($totalResult['total']);
 
-        // Main query
         $sql = "SELECT 
                     u.userID, u.name, u.email, u.phone, u.role,
                     sp.business_name, sp.approval_status, sp.created_at,
@@ -228,7 +205,6 @@ try {
         $stmt->execute($params);
         $sellers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Format response
         $formattedSellers = [];
         foreach ($sellers as $seller) {
             $formattedSellers[] = [
@@ -257,9 +233,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Approve, reject, suspend, restore seller
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $targetUserID = intval($input['userID'] ?? 0);
@@ -276,7 +252,6 @@ try {
             exit();
         }
 
-        // Verify seller exists
         $stmt = $conn->prepare("SELECT sp.userID, sp.approval_status, u.name, u.email FROM seller_profile sp INNER JOIN user u ON sp.userID = u.userID WHERE sp.userID = ?");
         $stmt->execute([$targetUserID]);
         $seller = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -286,22 +261,15 @@ try {
             exit();
         }
 
-        // Handle different actions
         if ($action === 'approve') {
-            // Update seller_profile status
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'approved', approved_at = NOW(), rejected_reason = NULL WHERE userID = ?");
             $stmt->execute([$targetUserID]);
-            
-            // Update user role
             $stmt = $conn->prepare("UPDATE user SET role = 'Seller' WHERE userID = ?");
             $stmt->execute([$targetUserID]);
             
             logSellerAction($adminID, 'approve_seller', $targetUserID, null);
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Seller approved successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Seller approved successfully']);
             exit();
         }
         
@@ -310,16 +278,12 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Reason is required for rejection']);
                 exit();
             }
-            
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'rejected', rejected_reason = ? WHERE userID = ?");
             $stmt->execute([$reason, $targetUserID]);
             
-            logSellerAction($adminID, 'reject_seller', $targetUserID, $reason);
+            logSellerAction($adminID, 'reject_seller', $targetUserID, json_encode(['reason' => $reason]));
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Seller rejected'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Seller rejected']);
             exit();
         }
         
@@ -328,47 +292,36 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Reason is required for suspension']);
                 exit();
             }
-            
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'suspended', rejected_reason = ? WHERE userID = ?");
             $stmt->execute([$reason, $targetUserID]);
-            
-            // Update user role to Buyer
             $stmt = $conn->prepare("UPDATE user SET role = 'Buyer' WHERE userID = ?");
             $stmt->execute([$targetUserID]);
             
-            logSellerAction($adminID, 'suspend_seller', $targetUserID, $reason);
+            // Store as JSON with reason key
+            logSellerAction($adminID, 'suspend_seller', $targetUserID, json_encode(['reason' => $reason]));
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Seller suspended successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Seller suspended successfully']);
             exit();
         }
-        
+
         if ($action === 'restore') {
             $stmt = $conn->prepare("UPDATE seller_profile SET approval_status = 'approved', rejected_reason = NULL WHERE userID = ?");
             $stmt->execute([$targetUserID]);
-            
-            // Update user role back to Seller
             $stmt = $conn->prepare("UPDATE user SET role = 'Seller' WHERE userID = ?");
             $stmt->execute([$targetUserID]);
             
             logSellerAction($adminID, 'restore_seller', $targetUserID, null);
             
-            echo json_encode([
-                'success' => true,
-                'message' => 'Seller restored successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Seller restored successfully']);
             exit();
         }
-        
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         exit();
     }
 
-    // ============================================================
-    // PUT: Edit seller details
-    // ============================================================
+    
+    // PUT: Edit seller details WITH DETAILED LOGGING
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $targetUserID = intval($input['userID'] ?? 0);
@@ -385,6 +338,17 @@ try {
             echo json_encode(['success' => false, 'message' => 'Seller not found']);
             exit();
         }
+
+        // Get old values before update
+        $stmt = $conn->prepare("SELECT business_name, business_address, business_phone, business_email FROM seller_profile WHERE userID = ?");
+        $stmt->execute([$targetUserID]);
+        $oldData = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Also get user phone
+        $stmt = $conn->prepare("SELECT phone FROM user WHERE userID = ?");
+        $stmt->execute([$targetUserID]);
+        $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+        $oldData['phone'] = $userData['phone'] ?? '';
 
         $business_name = trim($input['business_name'] ?? '');
         $business_address = trim($input['business_address'] ?? '');
@@ -412,17 +376,18 @@ try {
         WHERE userID = ?");
         $stmt->execute([$business_name, $business_address, $business_phone, $business_email, $targetUserID]);
 
-        // Log the action
-        $details = json_encode([
-            'updated_fields' => array_keys(array_filter([
-                'business_name' => $business_name,
-                'business_address' => $business_address,
-                'business_phone' => $business_phone,
-                'business_email' => $business_email,
-                'phone' => $phone
-            ], function($v) { return !empty($v); }))
-        ]);
-        logSellerAction($adminID, 'edit_seller', $targetUserID, $details);
+        // Get new values after update
+        $newData = [
+            'business_name' => $business_name,
+            'business_address' => $business_address,
+            'business_phone' => $business_phone,
+            'business_email' => $business_email,
+            'phone' => $phone
+        ];
+
+        // Log with detailed changes
+        require_once __DIR__ . '/../helpers/log_helper.php';
+        logSellerEdit($adminID, $targetUserID, $oldData, $newData);
 
         echo json_encode([
             'success' => true,
@@ -431,9 +396,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // DELETE: Delete seller
-    // ============================================================
+    
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $targetUserID = intval($input['userID'] ?? 0);
@@ -443,13 +408,11 @@ try {
             exit();
         }
 
-        // Prevent admin from deleting themselves
         if ($targetUserID == $adminID) {
             echo json_encode(['success' => false, 'message' => 'Cannot delete your own account']);
             exit();
         }
 
-        // Get seller info before deletion
         $stmt = $conn->prepare("SELECT u.userID, u.name, u.email, sp.business_name FROM user u INNER JOIN seller_profile sp ON u.userID = sp.userID WHERE u.userID = ?");
         $stmt->execute([$targetUserID]);
         $seller = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -459,7 +422,6 @@ try {
             exit();
         }
 
-        // Check if seller has products and orders
         $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE sellerID = ?");
         $stmt->execute([$targetUserID]);
         $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -470,11 +432,9 @@ try {
         $orderCount = $stmt->fetch(PDO::FETCH_ASSOC);
         $hasOrders = intval($orderCount['count']) > 0;
 
-        // Delete user (cascade will handle related records)
         $stmt = $conn->prepare("DELETE FROM user WHERE userID = ?");
         $stmt->execute([$targetUserID]);
 
-        // Log the action
         $details = json_encode([
             'deleted_seller' => $seller['name'],
             'business_name' => $seller['business_name'],

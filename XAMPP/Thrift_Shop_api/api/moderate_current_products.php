@@ -49,9 +49,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch all products for moderation
-    // ============================================================
+    
     if ($method === 'GET') {
         $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
         
@@ -106,9 +106,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // PUT: Update product visibility or details
-    // ============================================================
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -146,28 +146,27 @@ try {
         }
         
         if ($action === 'update_details') {
-            $name = trim($input['name'] ?? '');
-            $description = trim($input['description'] ?? '');
-            $price = floatval($input['price'] ?? 0);
-            $quantity = intval($input['quantity'] ?? 0);
-            $condition = $input['condition'] ?? 'Normal';
+            // Get old values before update
+            $stmt = $conn->prepare("SELECT name, description, price, quantity, `condition`, categoryID, status FROM product WHERE productID = ?");
+            $stmt->execute([$productID]);
+            $oldData = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (empty($name)) {
-                echo json_encode(['success' => false, 'message' => 'Name is required']);
-                exit();
-            }
+            // ... existing update code ...
             
-            if ($price <= 0) {
-                echo json_encode(['success' => false, 'message' => 'Valid price is required']);
-                exit();
-            }
+            // Get new values after update
+            $newData = [
+                'name' => $name,
+                'description' => $description,
+                'price' => $price,
+                'quantity' => $quantity,
+                'condition' => $condition,
+                'categoryID' => $categoryID,
+                'status' => $status ?? $oldData['status']
+            ];
             
-            $stmt = $conn->prepare("UPDATE product SET name = ?, description = ?, price = ?, quantity = ?, `condition` = ?, last_moderated_at = NOW() WHERE productID = ?");
-            $stmt->execute([$name, $description, $price, $quantity, $condition, $productID]);
-            
+            // Log with better details
             require_once __DIR__ . '/../helpers/log_helper.php';
-            $details = json_encode(['updated_fields' => ['name', 'description', 'price', 'quantity', 'condition']]);
-            logProductAction($userID, 'edit_product', $productID, $details);
+            logProductEdit($userID, $productID, $oldData, $newData);
             
             echo json_encode([
                 'success' => true,
@@ -180,9 +179,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Add moderation note
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);

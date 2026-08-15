@@ -37,9 +37,9 @@ try {
     $db = Database::getInstance();
     $conn = $db->getConnection();
 
-    // ============================================================
+    
     // GET: Fetch seller's products
-    // ============================================================
+    
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $status = isset($_GET['status']) ? $_GET['status'] : null;
         
@@ -78,9 +78,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Toggle product visibility (seller_active)
-    // ============================================================
+    
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -146,9 +146,9 @@ try {
     }
 
 
-    // ============================================================
+    
     // DELETE: Delete a product
-    // ============================================================
+    
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -192,9 +192,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // PUT: Update product
-    // ============================================================
+    
     if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);

@@ -4,7 +4,7 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
 header("Content-Type: application/json");
 
@@ -54,7 +54,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // GET: Fetch moderators
+    
+    // GET: Fetch moderators with pagination, search, filter
+    
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
@@ -63,7 +65,7 @@ try {
         $permissionFilter = isset($_GET['permission']) ? $_GET['permission'] : '';
         $moderatorID = isset($_GET['moderatorID']) ? intval($_GET['moderatorID']) : 0;
 
-        // If fetching a single moderator
+        // Fetch single moderator
         if ($moderatorID > 0) {
             $sql = "SELECT 
                         u.userID, u.name, u.email, u.phone, u.role, u.registration_date,
@@ -84,33 +86,23 @@ try {
                 exit();
             }
             
-            // Format the response with explicit permissions
-            $response = [
-                'userID' => intval($moderatorData['userID']),
-                'name' => $moderatorData['name'],
-                'email' => $moderatorData['email'],
-                'phone' => $moderatorData['phone'] ?? null,
-                'role' => $moderatorData['role'],
-                'registration_date' => $moderatorData['registration_date'],
-                'permissions' => [
-                    'can_moderate_sellers' => intval($moderatorData['can_moderate_sellers'] ?? 0),
-                    'can_moderate_products' => intval($moderatorData['can_moderate_products'] ?? 0),
-                    'can_approve_new_sellers' => intval($moderatorData['can_approve_new_sellers'] ?? 0),
-                    'can_approve_new_products' => intval($moderatorData['can_approve_new_products'] ?? 0),
-                    'can_manage_reports' => intval($moderatorData['can_manage_reports'] ?? 0),
-                    'can_view_analytics' => intval($moderatorData['can_view_analytics'] ?? 0)
-                ],
-                'total_actions' => intval($moderatorData['total_actions'] ?? 0),
-                'last_action' => $moderatorData['last_action']
-            ];
+            $moderatorData['userID'] = intval($moderatorData['userID']);
+            $moderatorData['can_moderate_sellers'] = intval($moderatorData['can_moderate_sellers']);
+            $moderatorData['can_moderate_products'] = intval($moderatorData['can_moderate_products']);
+            $moderatorData['can_approve_new_sellers'] = intval($moderatorData['can_approve_new_sellers']);
+            $moderatorData['can_approve_new_products'] = intval($moderatorData['can_approve_new_products']);
+            $moderatorData['can_manage_reports'] = intval($moderatorData['can_manage_reports']);
+            $moderatorData['can_view_analytics'] = intval($moderatorData['can_view_analytics']);
+            $moderatorData['total_actions'] = intval($moderatorData['total_actions']);
             
             echo json_encode([
                 'success' => true,
-                'data' => $response
+                'data' => $moderatorData
             ]);
             exit();
         }
 
+        // Fetch all moderators
         $whereClause = "WHERE u.role = 'Moderator'";
         $params = array();
         
@@ -186,7 +178,9 @@ try {
         exit();
     }
 
+    
     // POST: Add new moderator
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -257,13 +251,11 @@ try {
         exit();
     }
 
+    
     // PUT: Update moderator permissions
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
-        
-        error_log("=== PUT Request ===");
-        error_log("Input: " . print_r($input, true));
-        
         $targetUserID = intval($input['userID'] ?? 0);
         
         if (!$targetUserID) {
@@ -286,7 +278,6 @@ try {
         }
 
         $permissions = $input['permissions'] ?? [];
-        error_log("Permissions from request: " . print_r($permissions, true));
         
         $can_moderate_sellers = isset($permissions['can_moderate_sellers']) && $permissions['can_moderate_sellers'] === true ? 1 : 0;
         $can_moderate_products = isset($permissions['can_moderate_products']) && $permissions['can_moderate_products'] === true ? 1 : 0;
@@ -294,8 +285,6 @@ try {
         $can_approve_new_products = isset($permissions['can_approve_new_products']) && $permissions['can_approve_new_products'] === true ? 1 : 0;
         $can_manage_reports = isset($permissions['can_manage_reports']) && $permissions['can_manage_reports'] === true ? 1 : 0;
         $can_view_analytics = isset($permissions['can_view_analytics']) && $permissions['can_view_analytics'] === true ? 1 : 0;
-        
-        error_log("Values to update: can_moderate_sellers=$can_moderate_sellers, can_moderate_products=$can_moderate_products");
         
         $sql = "UPDATE user SET 
                 can_moderate_sellers = ?,
@@ -307,15 +296,12 @@ try {
                 WHERE userID = ?";
         
         $stmt = $conn->prepare($sql);
-        $result = $stmt->execute([
+        $stmt->execute([
             $can_moderate_sellers, $can_moderate_products,
             $can_approve_new_sellers, $can_approve_new_products,
             $can_manage_reports, $can_view_analytics,
             $targetUserID
         ]);
-        
-        error_log("Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
-        error_log("Rows affected: " . $stmt->rowCount());
         
         $details = json_encode([
             'updated_permissions' => $permissions,
@@ -330,12 +316,11 @@ try {
         exit();
     }
 
-    // PATCH: Update moderator details
+    
+    // PATCH: Update moderator details WITH DETAILED LOGGING
+    
     if ($method === 'PATCH') {
         $input = json_decode(file_get_contents('php://input'), true);
-        error_log("=== PATCH Request ===");
-        error_log("Input: " . print_r($input, true));
-        
         $targetUserID = intval($input['userID'] ?? 0);
         
         if (!$targetUserID) {
@@ -343,13 +328,11 @@ try {
             exit();
         }
 
-        // Prevent admin from editing themselves
         if ($targetUserID == $adminID) {
             echo json_encode(['success' => false, 'message' => 'Cannot edit your own account through this page']);
             exit();
         }
 
-        // Verify user exists and is Moderator
         $stmt = $conn->prepare("SELECT userID, name, email, phone, role FROM user WHERE userID = ? AND role = 'Moderator'");
         $stmt->execute([$targetUserID]);
         $targetUser = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -358,6 +341,11 @@ try {
             echo json_encode(['success' => false, 'message' => 'Moderator not found']);
             exit();
         }
+
+        // Get old values before update
+        $stmt = $conn->prepare("SELECT name, email, phone FROM user WHERE userID = ?");
+        $stmt->execute([$targetUserID]);
+        $oldData = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $name = trim($input['name'] ?? '');
         $email = trim($input['email'] ?? '');
@@ -373,7 +361,6 @@ try {
         }
 
         if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            // Check if email exists for another user
             $stmt = $conn->prepare("SELECT userID FROM user WHERE email = ? AND userID != ?");
             $stmt->execute([$email, $targetUserID]);
             if ($stmt->fetch()) {
@@ -407,22 +394,18 @@ try {
         $sql = "UPDATE user SET " . implode(", ", $updates) . " WHERE userID = ?";
         
         $stmt = $conn->prepare($sql);
-        $result = $stmt->execute($params);
-        
-        error_log("Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
-        error_log("Rows affected: " . $stmt->rowCount());
+        $stmt->execute($params);
 
-        // Log the action
-        $details = json_encode([
-            'updated_fields' => array_keys(array_filter([
-                'name' => $name,
-                'email' => $email,
-                'phone' => $phone,
-                'password' => !empty($password)
-            ])),
-            'moderator' => $targetUser['name']
-        ]);
-        logModeratorAction($adminID, 'edit_moderator', $targetUserID, $details);
+        // Get new values after update
+        $newData = [
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone
+        ];
+
+        // Log with detailed changes
+        require_once __DIR__ . '/../helpers/log_helper.php';
+        logModeratorEdit($adminID, $targetUserID, $oldData, $newData);
 
         echo json_encode([
             'success' => true,
@@ -431,7 +414,9 @@ try {
         exit();
     }
 
-    // DELETE: Remove moderators from system
+    
+    // DELETE: Remove moderator
+    
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $targetUserID = intval($input['userID'] ?? 0);
@@ -446,7 +431,7 @@ try {
             exit();
         }
 
-        // Verify user exists and is Moderator
+        // Get moderator info before deletion
         $stmt = $conn->prepare("SELECT userID, name, email, role FROM user WHERE userID = ? AND role = 'Moderator'");
         $stmt->execute([$targetUserID]);
         $targetUser = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -456,25 +441,12 @@ try {
             exit();
         }
 
-        // Check if user has any orders or products (should be 0 for moderators)
-        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE sellerID = ?");
+        // Check if they have any moderation history (keep it, but we'll log the deletion)
+        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM moderation_history WHERE moderatorID = ?");
         $stmt->execute([$targetUserID]);
-        $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
-        $hasProducts = intval($productCount['count']) > 0;
+        $historyCount = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stmt = $conn->prepare("SELECT COUNT(*) as count FROM `order` WHERE buyerID = ?");
-        $stmt->execute([$targetUserID]);
-        $orderCount = $stmt->fetch(PDO::FETCH_ASSOC);
-        $hasOrders = intval($orderCount['count']) > 0;
-
-        // If they have products/orders, they might have been a seller/buyer before
-        // Give a warning but allow deletion with cascade
-        if ($hasProducts || $hasOrders) {
-            // Log the warning
-            error_log("WARNING: Deleting moderator {$targetUser['name']} who has $productCount[count] products and $orderCount[count] orders");
-        }
-
-        // DELETE THE USER - Cascade will handle related records
+        // HARD DELETE the user
         $stmt = $conn->prepare("DELETE FROM user WHERE userID = ?");
         $stmt->execute([$targetUserID]);
 
@@ -482,8 +454,7 @@ try {
         $details = json_encode([
             'deleted_moderator' => $targetUser['name'],
             'email' => $targetUser['email'],
-            'had_products' => $hasProducts,
-            'had_orders' => $hasOrders
+            'had_moderation_history' => intval($historyCount['count']) > 0
         ]);
         logModeratorAction($adminID, 'remove_moderator', $targetUserID, $details);
 
@@ -493,6 +464,7 @@ try {
         ]);
         exit();
     }
+
 
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 

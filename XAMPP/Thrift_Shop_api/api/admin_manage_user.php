@@ -54,9 +54,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch users (with pagination, search, filter)
-    // ============================================================
+    
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
@@ -156,9 +156,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // PUT: Update user
-    // ============================================================
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $targetUserID = intval($input['userID'] ?? 0);
@@ -243,9 +243,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // DELETE: Delete user
-    // ============================================================
+    
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $targetUserID = intval($input['userID'] ?? 0);
@@ -271,7 +271,7 @@ try {
             exit();
         }
 
-        // Check if user has products
+        // Check if user has products (seller)
         $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE sellerID = ?");
         $stmt->execute([$targetUserID]);
         $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -295,6 +295,9 @@ try {
             'had_products' => $hasProducts,
             'had_orders' => $hasOrders
         ]);
+        
+        // Use logUserAction
+        require_once __DIR__ . '/../helpers/log_helper.php';
         logUserAction($adminID, 'delete_user', $targetUserID, $details);
 
         $response = [
@@ -308,7 +311,7 @@ try {
         echo json_encode($response);
         exit();
     }
-
+    
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 
 } catch (PDOException $e) {

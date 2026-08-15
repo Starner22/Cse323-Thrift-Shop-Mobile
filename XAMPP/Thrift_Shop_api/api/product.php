@@ -27,9 +27,9 @@ $categoryID = isset($_GET['category']) ? intval($_GET['category']) : null;
 $productID = isset($_GET['id']) ? intval($_GET['id']) : null;
 $search = isset($_GET['search']) ? $_GET['search'] : null;
 
-// ============================================================
+
 // BUILD THE QUERY WITH VISIBILITY FILTERS
-// ============================================================
+
 $sql = "SELECT 
             p.*, 
             c.name as categoryName 

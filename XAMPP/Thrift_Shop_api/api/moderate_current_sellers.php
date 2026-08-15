@@ -50,9 +50,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch all sellers
-    // ============================================================
+    
     if ($method === 'GET') {
         $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
         $sellerUserID = isset($_GET['userID']) ? intval($_GET['userID']) : 0;
@@ -137,9 +137,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Suspend or restore seller
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $sellerUserID = intval($input['userID'] ?? 0);

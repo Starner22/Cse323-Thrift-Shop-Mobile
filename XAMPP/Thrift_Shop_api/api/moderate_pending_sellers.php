@@ -49,9 +49,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch pending seller applications
-    // ============================================================
+    
     if ($method === 'GET') {
         $sql = "SELECT 
                     u.userID,
@@ -79,9 +79,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Approve or reject seller application
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $sellerUserID = intval($input['userID'] ?? 0);

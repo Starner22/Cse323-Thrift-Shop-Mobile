@@ -54,9 +54,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch products with stats, search, filter
-    // ============================================================
+    
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
@@ -67,9 +67,7 @@ try {
         $sellerID = isset($_GET['sellerID']) ? intval($_GET['sellerID']) : 0;
         $productID = isset($_GET['productID']) ? intval($_GET['productID']) : 0;
 
-        // ============================================================
-        // Get single product (for view details)
-        // ============================================================
+        // Get single product
         if ($productID > 0) {
             $sql = "SELECT 
                         p.*, 
@@ -104,9 +102,7 @@ try {
             exit();
         }
 
-        // ============================================================
         // Get product stats
-        // ============================================================
         $statsSql = "SELECT 
                         COUNT(*) as total,
                         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
@@ -121,9 +117,7 @@ try {
         $stats['pending'] = intval($stats['pending']);
         $stats['rejected'] = intval($stats['rejected']);
 
-        // ============================================================
         // Build product list query
-        // ============================================================
         $whereClause = "WHERE 1=1";
         $params = [];
         
@@ -150,9 +144,7 @@ try {
         }
 
         // Get total count
-        $countSql = "SELECT COUNT(*) as total 
-                     FROM product p 
-                     " . $whereClause;
+        $countSql = "SELECT COUNT(*) as total FROM product p " . $whereClause;
         $countStmt = $conn->prepare($countSql);
         $countStmt->execute($params);
         $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
@@ -213,9 +205,9 @@ try {
         exit();
     }
 
-    // ============================================================
-    // POST: Update product status (approve/reject)
-    // ============================================================
+    
+    // POST: Update product status (approve/reject/hide/show/delete)
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -232,7 +224,6 @@ try {
             exit();
         }
 
-        // Verify product exists
         $stmt = $conn->prepare("SELECT p.productID, p.status, p.name, u.name as sellerName FROM product p LEFT JOIN user u ON p.sellerID = u.userID WHERE p.productID = ?");
         $stmt->execute([$productID]);
         $product = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -242,17 +233,11 @@ try {
             exit();
         }
 
-        // Handle different actions
         if ($action === 'approve') {
             $stmt = $conn->prepare("UPDATE product SET status = 'approved' WHERE productID = ?");
             $stmt->execute([$productID]);
-            
             logProductAction($adminID, 'approve_product', $productID, null);
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Product approved successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Product approved successfully']);
             exit();
         }
         
@@ -261,68 +246,43 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Reason is required for rejection']);
                 exit();
             }
-            
             $stmt = $conn->prepare("UPDATE product SET status = 'rejected', moderation_notes = ? WHERE productID = ?");
             $stmt->execute([$reason, $productID]);
-            
             logProductAction($adminID, 'reject_product', $productID, $reason);
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Product rejected'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Product rejected']);
             exit();
         }
         
         if ($action === 'hide') {
             $stmt = $conn->prepare("UPDATE product SET can_display = 0, last_moderated_at = NOW() WHERE productID = ?");
             $stmt->execute([$productID]);
-            
             logProductAction($adminID, 'hide_product', $productID, null);
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Product hidden successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Product hidden successfully']);
             exit();
         }
         
         if ($action === 'show') {
             $stmt = $conn->prepare("UPDATE product SET can_display = 1, last_moderated_at = NOW() WHERE productID = ?");
             $stmt->execute([$productID]);
-            
             logProductAction($adminID, 'show_product', $productID, null);
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Product shown successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Product shown successfully']);
             exit();
         }
         
         if ($action === 'delete') {
-            // Get image path to delete file
             $stmt = $conn->prepare("SELECT image_path FROM product WHERE productID = ?");
             $stmt->execute([$productID]);
             $imagePath = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            // Delete image file if exists
             if ($imagePath && $imagePath['image_path']) {
                 $filePath = __DIR__ . '/../' . $imagePath['image_path'];
                 if (file_exists($filePath)) {
                     unlink($filePath);
                 }
             }
-            
             $stmt = $conn->prepare("DELETE FROM product WHERE productID = ?");
             $stmt->execute([$productID]);
-            
             logProductAction($adminID, 'delete_product', $productID, null);
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Product deleted successfully'
-            ]);
+            echo json_encode(['success' => true, 'message' => 'Product deleted successfully']);
             exit();
         }
         
@@ -330,9 +290,9 @@ try {
         exit();
     }
 
-    // ============================================================
-    // PUT: Edit product details
-    // ============================================================
+    
+    // PUT: Edit product details WITH DETAILED LOGGING
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -342,13 +302,17 @@ try {
             exit();
         }
 
-        // Verify product exists
         $stmt = $conn->prepare("SELECT productID, name FROM product WHERE productID = ?");
         $stmt->execute([$productID]);
         if (!$stmt->fetch()) {
             echo json_encode(['success' => false, 'message' => 'Product not found']);
             exit();
         }
+
+        // Get old values before update
+        $stmt = $conn->prepare("SELECT name, description, price, quantity, `condition`, categoryID, status FROM product WHERE productID = ?");
+        $stmt->execute([$productID]);
+        $oldData = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $name = trim($input['name'] ?? '');
         $description = trim($input['description'] ?? '');
@@ -403,19 +367,20 @@ try {
         $stmt = $conn->prepare($sql);
         $stmt->execute($params);
 
-        // Log the action
-        $details = json_encode([
-            'updated_fields' => array_keys(array_filter([
-                'name' => $name,
-                'description' => $description,
-                'price' => $price,
-                'quantity' => $quantity,
-                'condition' => $condition,
-                'categoryID' => $categoryID,
-                'status' => $status
-            ]))
-        ]);
-        logProductAction($adminID, 'edit_product', $productID, $details);
+        // Get new values after update
+        $newData = [
+            'name' => $name,
+            'description' => $description,
+            'price' => $price,
+            'quantity' => $quantity,
+            'condition' => $condition,
+            'categoryID' => $categoryID,
+            'status' => $status ?? $oldData['status']
+        ];
+
+        // Log with detailed changes
+        require_once __DIR__ . '/../helpers/log_helper.php';
+        logProductEdit($adminID, $productID, $oldData, $newData);
 
         echo json_encode([
             'success' => true,

@@ -44,9 +44,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // 1. GET: Fetch cart items
-    // ============================================================
+    
     if ($method === 'GET') {
         // Get or create cart for user
         $stmt = $conn->prepare("SELECT cartID FROM cart WHERE buyerID = ?");
@@ -108,9 +108,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // 2. POST: Add item to cart
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         $productID = intval($input['productID'] ?? 0);
@@ -179,9 +179,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // 3. PUT: Update quantity (or remove if quantity = 0)
-    // ============================================================
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $cartItemID = intval($input['cartItemID'] ?? 0);
@@ -240,9 +240,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // 4. DELETE: Remove item from cart
-    // ============================================================
+    
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $cartItemID = intval($input['cartItemID'] ?? 0);
@@ -276,9 +276,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // 5. Method not allowed
-    // ============================================================
+    
     echo json_encode([
         'success' => false,
         'message' => 'Method not allowed'

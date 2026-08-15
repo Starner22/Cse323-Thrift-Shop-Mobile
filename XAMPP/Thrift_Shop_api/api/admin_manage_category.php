@@ -54,9 +54,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    // ============================================================
+    
     // GET: Fetch categories with product counts
-    // ============================================================
+    
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
@@ -64,9 +64,9 @@ try {
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $categoryID = isset($_GET['categoryID']) ? intval($_GET['categoryID']) : 0;
 
-        // ============================================================
+        
         // Get single category
-        // ============================================================
+        
         if ($categoryID > 0) {
             $sql = "SELECT 
                         c.categoryID, c.name, c.image_path, c.created_at,
@@ -93,9 +93,9 @@ try {
             exit();
         }
 
-        // ============================================================
+        
         // Get all categories with counts
-        // ============================================================
+        
         $whereClause = "WHERE 1=1";
         $params = [];
 
@@ -148,9 +148,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // POST: Add new category
-    // ============================================================
+    
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -211,9 +211,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // PUT: Update category
-    // ============================================================
+    
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $categoryID = intval($input['categoryID'] ?? 0);
@@ -293,9 +293,9 @@ try {
         exit();
     }
 
-    // ============================================================
+    
     // DELETE: Delete category
-    // ============================================================
+    
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $categoryID = intval($input['categoryID'] ?? 0);

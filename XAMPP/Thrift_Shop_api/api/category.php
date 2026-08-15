@@ -26,9 +26,9 @@ if ($conn->connect_error) {
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : null;
 $includeCount = isset($_GET['count']) ? $_GET['count'] === 'true' : false;
 
-// ============================================================
+
 // BUILD THE QUERY WITH ALL VISIBILITY FILTERS
-// ============================================================
+
 $sql = "SELECT 
             c.categoryID, 
             c.name, 

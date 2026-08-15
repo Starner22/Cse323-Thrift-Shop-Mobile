@@ -13,7 +13,6 @@ import Customer_Show_Category from './app/screen/Customer_Show_Category';
 import Customer_Product_Detail from './app/screen/Customer_Product_Details';
 import LoginScreen from './app/screen/Login_Screen';
 import RegisterScreen from './app/screen/Register_Screen';
-
 import BuyerAccountScreen from './app/screen/Buyer_Account_Screen';
 import Seller_Account_Screen from './app/screen/Seller_Account_Screen';
 import User_Edit_Profile from './app/screen/User_Account_Edit_Profile';
@@ -21,7 +20,6 @@ import Seller_Edit_Business from './app/screen/Seller_Edit_Business';
 import WishlistScreen from './app/screen/Wishlist_Screen';
 import BecomeSellerScreen from './app/screen/Become_Seller_Screen';
 import User_Password_Edit from './app/screen/User_Password_Edit';
-
 import Cart_Screen from './app/screen/Cart_Screen';
 import Seller_Sell_Product from './app/screen/Seller_Sell_Product';
 import Seller_Clearance_Issue from './app/screen/Seller_Clearance_Issue';
@@ -47,28 +45,37 @@ const AlertsScreen = () => null;
 
 const Stack = createNativeStackNavigator();
 
-// Main App Navigator with Auth
+// Main App
 function AppNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     // Splash Screen placeholder
     return null;
   }
 
+  let initialRoute = 'Login';
+    if (isAuthenticated) {
+        if (user?.role === 'Admin') {
+            initialRoute = 'AdminAccount';
+        } else if (user?.role === 'Moderator') {
+            initialRoute = 'ModeratorAccount';
+        } else {
+            initialRoute = 'Home';
+        }
+    }
+
+
   return (
     <Stack.Navigator
-      initialRouteName={isAuthenticated ? "Home" : "Login"}
+      initialRouteName={initialRoute}
       screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
+          headerShown: false,
+          animation: 'slide_from_right',
       }}
     >
-      {/* Auth Screens */}
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
-
-      {/* Main App Screens */}
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="BrowseAll" component={Customer_Browse_All} />
       <Stack.Screen name="BrowseCategorized" component={Customer_Browse_Categorized} />

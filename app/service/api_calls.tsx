@@ -807,6 +807,23 @@ async getCurrentUser(): Promise<any | null> {
       }
   }
 
+    async getAllModerationHistory(fromDate?: string, toDate?: string): Promise<any> {
+        try {
+            let endpoint = '/admin_moderation_history.php';
+            const params = new URLSearchParams();
+            if (fromDate) params.append('from_date', fromDate);
+            if (toDate) params.append('to_date', toDate);
+            if (params.toString()) {
+                endpoint += `?${params.toString()}`;
+            }
+            return await this.request<any>(endpoint, {}, true);
+        } catch (error) {
+            console.error('Error fetching all moderation history:', error);
+            return { success: false, data: [] };
+        }
+    }
+
+
   // ========== ADMIN - USER MANAGEMENT ==========
 
   async getUsers(page: number = 1, limit: number = 20, search: string = '', role: string = ''): Promise<any> {

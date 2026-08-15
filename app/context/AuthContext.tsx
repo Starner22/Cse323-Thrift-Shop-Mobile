@@ -43,7 +43,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 if (storedUser) {
                     setUser(storedUser);
                     setIsAuthenticated(true);
-                    console.log('Auto-login successful');
                     setIsLoading(false);
                     return;
                 }
@@ -68,7 +67,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     setUser(userWithPermissions);
                     await StorageService.storeUser(userWithPermissions);
                     setIsAuthenticated(true);
-                    console.log('Auto-login successful');
                 } else {
                     await logout();
                 }
@@ -107,8 +105,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser(userWithPermissions);
                 await StorageService.storeUser(userWithPermissions);
                 setIsAuthenticated(true);
-                
-                console.log('Login successful with permissions:', userWithPermissions.permissions);
                 return true;
             } else {
                 Alert.alert('Login Failed', response.message || 'Invalid credentials');
@@ -147,7 +143,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             await apiService.logout();
             setUser(null);
             setIsAuthenticated(false);
-            console.log('Logged out');
         } catch (error) {
             console.error('Logout error:', error);
         }
@@ -192,8 +187,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 };
                 await StorageService.storeUser(updatedUser);
             }
-            
-            console.log('User data updated locally');
         } catch (error) {
             console.error('Error updating user locally:', error);
             throw error;

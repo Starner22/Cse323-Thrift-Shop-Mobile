@@ -36,7 +36,8 @@ import Customer_Address from './app/screen/Customer_Address';
 import Customer_Add_Address from './app/screen/Customer_Add_Address';
 import Customer_Set_Default_Address from './app/screen/Customer_Set_Default_Address';
 import Customer_Edit_Address from './app/screen/Customer_Edit_Address';
-import Moderation_History_Screen from './app/screen/Moderation_History_Screen';
+import Personal_Moderation_History  from './app/screen/Personal_Moderation_History';
+import Admin_All_Moderation_History from './app/screen/Admin_All_Moderation_History';
 import Admin_Account_Screen from './app/screen/Admin_Account_Screen';
 import Admin_User_Management from './app/screen/Admin_User_Management';
 import Admin_Seller_Management from './app/screen/Admin_Seller_Management';
@@ -95,11 +96,17 @@ function AppNavigator() {
       <Stack.Screen name="CustomerAddAddress" component={Customer_Add_Address} />
       <Stack.Screen name="ModerateCurrentSellers" component={Moderate_Current_Sellers} />
       <Stack.Screen name="CustomerSetDefaultAddress" component={Customer_Set_Default_Address} />
-      <Stack.Screen name="ModerationHistory" component={Moderation_History_Screen} />
       <Stack.Screen name="CustomerEditAddress" component={Customer_Edit_Address} />
       <Stack.Screen name="AdminAccount" component={Admin_Account_Screen} />
       <Stack.Screen name="AdminUserManagement" component={Admin_User_Management} />
       <Stack.Screen name="AdminSellerManagement" component={Admin_Seller_Management} />
+      <Stack.Screen name="AdminModeratorManagement" component={Admin_Moderator_Management} />
+      <Stack.Screen name="AdminSellerProducts" component={Admin_Seller_Products} />
+      <Stack.Screen name="AdminSellerOrders" component={Admin_Seller_Orders} />
+      <Stack.Screen name="AdminProductManagement" component={Admin_Product_Management} />
+      <Stack.Screen name="AdminCategoryManagement" component={Admin_Category_Management} />
+      <Stack.Screen name="PersonalModerationHistory" component={Personal_Moderation_History} />
+  <Stack.Screen name="AdminAllModerationHistory" component={Admin_All_Moderation_History} />
     </Stack.Navigator>
   );
 }

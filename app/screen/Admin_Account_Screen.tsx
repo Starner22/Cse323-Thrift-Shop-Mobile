@@ -119,7 +119,7 @@ const Admin_Account_Screen = ({ navigation }: any) => {
     };
 
     const handleProductManagement = () => {
-        navigation.navigate('ModerateCurrentProducts');
+        navigation.navigate('AdminProductManagement');
     };
 
     const handleCategoryManagement = () => {
@@ -128,7 +128,11 @@ const Admin_Account_Screen = ({ navigation }: any) => {
 
 
     const handleViewModerationHistory = () => {
-        navigation.navigate('ModerationHistory');
+        navigation.navigate('PersonalModerationHistory');
+    };
+
+    const handleAllModerationHistory = () => {
+        navigation.navigate('AdminAllModerationHistory');
     };
 
     const handleApproveSellers = () => {
@@ -380,6 +384,16 @@ const Admin_Account_Screen = ({ navigation }: any) => {
                                 <Ionicons name="folder-outline" size={22} color="#FF9800" />
                             </View>
                             <Text style={styles.menuText}>Category Management</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleAllModerationHistory}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
+                                <Ionicons name="document-text-outline" size={22} color="#FF6B6B" />
+                            </View>
+                            <Text style={styles.menuText}>All Moderation History</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>

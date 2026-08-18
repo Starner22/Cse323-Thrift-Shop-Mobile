@@ -135,6 +135,10 @@ const Admin_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('AdminAllModerationHistory');
     };
 
+    const handleOrderManagement = () => {
+        navigation.navigate('AdminOrderManagement');
+    };
+
     const handleApproveSellers = () => {
         navigation.navigate('ModeratePendingSellers');
     };
@@ -145,6 +149,10 @@ const Admin_Account_Screen = ({ navigation }: any) => {
 
     const handleAnalytics = () => {
         Alert.alert('Analytics', 'Coming soon!');
+    };
+
+    const handleDeletedProducts = () => {
+        navigation.navigate('AdminDeletedProducts');
     };
 
     // Get user initials for avatar
@@ -378,12 +386,32 @@ const Admin_Account_Screen = ({ navigation }: any) => {
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
 
+                    <TouchableOpacity style={styles.menuItem} onPress={handleDeletedProducts}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
+                                <Ionicons name="trash-outline" size={22} color="#6C5CE7" />
+                            </View>
+                            <Text style={styles.menuText}>Deleted Products</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
                     <TouchableOpacity style={styles.menuItem} onPress={handleCategoryManagement}>
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
                                 <Ionicons name="folder-outline" size={22} color="#FF9800" />
                             </View>
                             <Text style={styles.menuText}>Category Management</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleOrderManagement}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="receipt-outline" size={22} color="#2196F3" />
+                            </View>
+                            <Text style={styles.menuText}>Order Management</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>

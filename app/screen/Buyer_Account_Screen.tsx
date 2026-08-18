@@ -47,12 +47,11 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
 
     const handleBecomeSeller = () => {
         navigation.navigate('BecomeSeller');
-    };
+    };  
 
     const handleOrders = () => {
-        Alert.alert('My Orders', 'Orders page coming soon!');
+        navigation.navigate('OrderHistory');
     };
-
     const handleWishlist = () => {
         navigation.navigate('Wishlist');
     };

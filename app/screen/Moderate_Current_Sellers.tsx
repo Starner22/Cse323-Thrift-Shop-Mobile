@@ -40,6 +40,8 @@ interface Seller {
     updated_at: string;
     product_count: number;
     total_sales: number;
+    total_orders?: number;
+    total_revenue?: number; 
 }
 
 const Moderate_Current_Sellers = ({ navigation }: any) => {
@@ -189,12 +191,6 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
         const isProcessing = processingId === item.userID;
         const isSuspended = item.approval_status === 'suspended';
 
-        // Get initials safely
-        const getInitials = (name: string) => {
-            if (!name) return '??';
-            return name.substring(0, 2).toUpperCase();
-        };
-
         return (
             <View style={[styles.sellerCard, isSuspended && styles.suspendedCard]}>
                 <TouchableOpacity 
@@ -205,7 +201,7 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: isSuspended ? '#6C5CE7' : '#4CAF50' }]}>
                             <Text style={styles.avatarText}>
-                                {getInitials(item.business_name)}
+                                {item.business_name ? item.business_name.substring(0, 2).toUpperCase() : '??'}
                             </Text>
                         </View>
                         {isSuspended && (
@@ -226,7 +222,10 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
                         </View>
                         <View style={styles.sellerStats}>
                             <Text style={styles.statText}>📦 {item.product_count || 0} products</Text>
-                            <Text style={styles.statText}>💰 ${item.total_sales || 0}</Text>
+                            <Text style={styles.statText}>📋 {item.total_orders || 0} orders</Text>
+                            <Text style={[styles.statText, styles.revenueText]}>
+                                💰 ${item.total_revenue?.toFixed(2) || '0.00'}
+                            </Text>
                         </View>
                     </View>
                 </TouchableOpacity>
@@ -282,6 +281,7 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
             </View>
         );
     };
+
 
     if (!isAuthenticated || (user?.role !== 'Moderator' && user?.role !== 'Admin')) {
         return (
@@ -478,7 +478,7 @@ const Moderate_Current_Sellers = ({ navigation }: any) => {
                                             <Text style={styles.modalStatLabel}>Products</Text>
                                         </View>
                                         <View style={styles.modalStatItem}>
-                                            <Text style={styles.modalStatNumber}>${selectedSeller.total_sales || 0}</Text>
+                                            <Text style={styles.modalStatNumber}>${selectedSeller.total_revenue || 0}</Text>
                                             <Text style={styles.modalStatLabel}>Total Sales</Text>
                                         </View>
                                     </View>
@@ -1093,6 +1093,10 @@ const styles = StyleSheet.create({
     rejectModalSubmitText: {
         color: '#fff',
         fontSize: 16,
+        fontWeight: 'bold',
+    },
+    revenueText: {
+        color: '#4CAF50',
         fontWeight: 'bold',
     },
 });

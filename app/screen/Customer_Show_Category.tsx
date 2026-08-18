@@ -21,7 +21,7 @@ const Customer_Show_Category = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
+  const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
 
   useEffect(() => {
     fetchCategories();

@@ -39,7 +39,7 @@ const Cart_Screen = ({ navigation }: any) => {
     const [totalPrice, setTotalPrice] = useState(0);
     const [updatingItem, setUpdatingItem] = useState<number | null>(null);
 
-    const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
+    const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -180,7 +180,7 @@ const Cart_Screen = ({ navigation }: any) => {
             Alert.alert('Empty Cart', 'Add some items to your cart first');
             return;
         }
-        Alert.alert('Checkout', 'Checkout functionality coming soon!');
+        navigation.navigate('CustomerCheckout', {cartItems: cartItems, totalPrice: totalPrice,totalItems: totalItems});
     };
 
     const handleProductPress = (productID: number) => {

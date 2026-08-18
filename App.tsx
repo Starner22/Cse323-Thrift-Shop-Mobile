@@ -44,6 +44,13 @@ import Admin_Seller_Products from './app/screen/Admin_Seller_Products';
 import Admin_Seller_Orders from './app/screen/Admin_Seller_Orders';
 import Admin_Product_Management from './app/screen/Admin_Product_Management';
 import Admin_Category_Management from './app/screen/Admin_Category_Management';
+import Customer_Checkout from './app/screen/Customer_Checkout';
+import Customer_Order_History from './app/screen/Customer_Order_History';
+import Customer_Order_Details from './app/screen/Customer_Order_Details';
+import Seller_Sales_Screen from './app/screen/Seller_Sales_Screen';
+import Seller_Sales_Details from './app/screen/Seller_Sales_Details';
+import Admin_Order_Management from './app/screen/Admin_Order_Management';
+import Admin_Show_Deleted_Products from './app/screen/Admin_Show_Deleted_Products';
 
 
 
@@ -120,7 +127,17 @@ function AppNavigator() {
       <Stack.Screen name="AdminProductManagement" component={Admin_Product_Management} />
       <Stack.Screen name="AdminCategoryManagement" component={Admin_Category_Management} />
       <Stack.Screen name="PersonalModerationHistory" component={Personal_Moderation_History} />
-  <Stack.Screen name="AdminAllModerationHistory" component={Admin_All_Moderation_History} />
+      <Stack.Screen name="AdminAllModerationHistory" component={Admin_All_Moderation_History} />
+      <Stack.Screen name="CustomerCheckout" component={Customer_Checkout} />
+      <Stack.Screen name="OrderHistory" component={Customer_Order_History} />
+      <Stack.Screen name="OrderDetails" component={Customer_Order_Details} />
+      <Stack.Screen name="SellerSales" component={Seller_Sales_Screen} />
+      <Stack.Screen name="SellerSalesDetails" component={Seller_Sales_Details} />
+      <Stack.Screen name="AdminOrderManagement" component={Admin_Order_Management} />
+      <Stack.Screen name="AdminDeletedProducts" component={Admin_Show_Deleted_Products} />
+      
+
+
     </Stack.Navigator>
   );
 }

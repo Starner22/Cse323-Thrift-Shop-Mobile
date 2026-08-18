@@ -106,8 +106,13 @@ const Seller_Account_Screen = ({ navigation }: any) => {
     };
 
     const handleMyOrders = () => {
-        Alert.alert('My Orders', 'Orders page coming soon!');
+        navigation.navigate('OrderHistory');
     };
+
+    const handleSales = () => {
+        navigation.navigate('SellerSales');
+    };
+
 
     const handleMyWishlist = () => {
         navigation.navigate('Wishlist');
@@ -304,6 +309,21 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                                 <View style={styles.menuRight}>
                                     {stats.pendingOrders > 0 && (
                                         <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{stats.pendingOrders}</Text>
+                                    )}
+                                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.menuItem} onPress={handleSales}>
+                                <View style={styles.menuLeft}>
+                                    <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                        <Ionicons name="cash-outline" size={22} color="#4CAF50" />
+                                    </View>
+                                    <Text style={styles.menuText}>My Sales</Text>
+                                </View>
+                                <View style={styles.menuRight}>
+                                    {stats.totalOrders > 0 && (
+                                        <Text style={styles.menuBadge}>{stats.totalOrders}</Text>
                                     )}
                                     <Ionicons name="chevron-forward" size={20} color="#ccc" />
                                 </View>

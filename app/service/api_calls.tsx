@@ -1,7 +1,7 @@
 import StorageService from './StorageService';
 
-const API_URL = `http://192.168.0.107/Thrift_Shop_api/api`;
-const AUTH_URL = `http://192.168.0.107/Thrift_Shop_api/auth`;
+const API_URL = `http://192.168.0.100/Thrift_Shop_api/api`;
+const AUTH_URL = `http://192.168.0.100/Thrift_Shop_api/auth`;
 
 // Types
 export interface Category {
@@ -1024,19 +1024,34 @@ async getCurrentUser(): Promise<any | null> {
 
     // ========== ADMIN - PRODUCT MANAGEMENT ==========
 
-    async getProductsForAdmin(page: number = 1, limit: number = 20, search: string = '', status: string = ''): Promise<any> {
+    async getProductsForAdmin(page: number = 1, limit: number = 20, search: string = '', status: string = '', showDeleted: boolean = false): Promise<any> {
         try {
             let endpoint = `/admin_manage_product.php?page=${page}&limit=${limit}`;
             if (search) {
                 endpoint += `&search=${encodeURIComponent(search)}`;
             }
-            if (status && status !== 'all') {
+            if (status && status !== 'all' && status !== 'deleted') {
                 endpoint += `&status=${status}`;
+            }
+            if (showDeleted) {
+                endpoint += `&showDeleted=true`;
             }
             return await this.request<any>(endpoint, {}, true);
         } catch (error) {
             console.error('Error fetching products for admin:', error);
             return { success: false, data: [], stats: { total: 0, approved: 0, pending: 0, rejected: 0 } };
+        }
+    }
+
+    async softDeleteProduct(productID: number): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_product.php', {
+                method: 'POST',
+                body: JSON.stringify({ productID, action: 'delete' }),
+            }, true);
+        } catch (error) {
+            console.error('Error soft deleting product:', error);
+            throw error;
         }
     }
 
@@ -1133,6 +1148,144 @@ async getCurrentUser(): Promise<any | null> {
         }
     }
 
+    // ========== ORDER METHODS ==========
+
+
+    async createOrder(orderData: any): Promise<any> {
+        try {
+            return await this.request<any>('/customer_checkout.php', {
+                method: 'POST',
+                body: JSON.stringify(orderData),
+            }, true);
+        } catch (error) {
+            console.error('Error creating order:', error);
+            throw error;
+        }
+    }
+
+    async getMyOrders(): Promise<any> {
+        try {
+            return await this.request<any>('/customer_checkout.php', {}, true);
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            return { success: false, data: [] };
+        }
+    }
+
+    async getOrderDetails(orderID: number): Promise<any> {
+        try {
+            return await this.request<any>(`/customer_checkout.php?orderID=${orderID}`, {}, true);
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            return { success: false };
+        }
+    }
+
+    async cancelOrder(orderID: number): Promise<any> {
+        try {
+            return await this.request<any>('/customer_checkout.php', {
+                method: 'DELETE',
+                body: JSON.stringify({ orderID }),
+            }, true);
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            throw error;
+        }
+    }
+
+    // ========== SELLER ORDER METHODS ==========
+
+    async getSellerOrders(): Promise<any> {
+        try {
+            return await this.request<any>('/seller_sales.php', {}, true);
+        } catch (error) {
+            console.error('Error fetching seller orders:', error);
+            return { success: false, data: [], stats: {
+                totalOrders: 0,
+                totalRevenue: 0,
+                pending: 0,
+                processing: 0,
+                shipped: 0,
+                completed: 0,
+                cancelled: 0
+            }};
+        }
+    }
+
+    async getSellerOrderDetails(orderID: number): Promise<any> {
+        try {
+            return await this.request<any>(`/seller_sales.php?orderID=${orderID}`, {}, true);
+        } catch (error) {
+            console.error('Error fetching seller order details:', error);
+            return { success: false };
+        }
+    }
+
+    // ========== ADMIN ORDER METHODS ==========
+
+    async getAllOrdersForAdmin(status?: string): Promise<any> {
+        try {
+            let endpoint = '/admin_manage_order.php';
+            if (status) {
+                endpoint += `?status=${status}`;
+            }
+            return await this.request<any>(endpoint, {}, true);
+        } catch (error) {
+            console.error('Error fetching all orders:', error);
+            return { 
+                success: false, 
+                data: [], 
+                stats: {
+                    total: 0, pending: 0, processing: 0, shipped: 0, 
+                    completed: 0, cancelled: 0, totalRevenue: 0
+                }
+            };
+        }
+    }
+
+    async getOrderDetailsForAdmin(orderID: number): Promise<any> {
+        try {
+            return await this.request<any>(`/admin_manage_order.php?orderID=${orderID}`, {}, true);
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            return { success: false };
+        }
+    }
+
+    async updateOrderStatus(orderID: number, status: string): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_order.php', {
+                method: 'PUT',
+                body: JSON.stringify({ orderID, status }),
+            }, true);
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            throw error;
+        }
+    }
+
+    async cancelOrderAdmin(orderID: number, reason: string): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_order.php', {
+                method: 'PUT',
+                body: JSON.stringify({ orderID, status: 'Cancelled', reason }),
+            }, true);
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            throw error;
+        }
+    }
+
+    // ========== ADMIN - DELETED PRODUCTS ==========
+
+    async getDeletedProducts(): Promise<any> {
+        try {
+            return await this.request<any>('/admin_manage_product.php?action=deleted', {}, true);
+        } catch (error) {
+            console.error('Error fetching deleted products:', error);
+            return { success: false, data: [] };
+        }
+    }
 }
 
 export const apiService = new ApiService();

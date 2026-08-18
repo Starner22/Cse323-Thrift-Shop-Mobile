@@ -32,7 +32,7 @@ const Customer_Browse_All = ({ route, navigation }: any) => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
+  const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     conditions: [],

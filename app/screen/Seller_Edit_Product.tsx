@@ -43,7 +43,7 @@ const Seller_Edit_Product = ({ route, navigation }: any) => {
     const [showImageOptions, setShowImageOptions] = useState(false);
 
     const conditionOptions = ['Excellent', 'Good', 'Normal', 'Subpar'];
-    const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
+    const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
 
     useEffect(() => {
         fetchCategories();

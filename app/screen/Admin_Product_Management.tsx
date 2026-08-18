@@ -38,6 +38,7 @@ interface Product {
     sellerName: string;
     sellerEmail: string;
     moderation_notes?: string;
+    is_deleted?: number;
 }
 
 interface ProductStats {
@@ -55,6 +56,7 @@ const Admin_Product_Management = ({ navigation }: any) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [showDeleted, setShowDeleted] = useState(false);
     const [stats, setStats] = useState<ProductStats>({
         total: 0,
         approved: 0,
@@ -88,18 +90,18 @@ const Admin_Product_Management = ({ navigation }: any) => {
         status: ''
     });
 
-    const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
+    const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
 
     useEffect(() => {
         if (isAuthenticated) {
             fetchProducts();
         }
-    }, [isAuthenticated, page, statusFilter]);
+    }, [isAuthenticated, page, statusFilter, showDeleted]);
 
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            const response = await apiService.getProductsForAdmin(page, limit, searchQuery, statusFilter);
+            const response = await apiService.getProductsForAdmin(page, limit, searchQuery, statusFilter, showDeleted);
             if (response && response.success) {
                 setProducts(response.data || []);
                 setStats(response.stats || { total: 0, approved: 0, pending: 0, rejected: 0 });
@@ -127,6 +129,17 @@ const Admin_Product_Management = ({ navigation }: any) => {
         fetchProducts();
     };
 
+    const applyFilter = (filter: string) => {
+        setStatusFilter(filter);
+        if (filter === 'deleted') {
+            setShowDeleted(true);
+        } else {
+            setShowDeleted(false);
+        }
+        setPage(1);
+        setShowFilterDropdown(false);
+    };
+
     const handleViewProduct = async (productID: number) => {
         try {
             const response = await apiService.getProductForAdmin(productID);
@@ -145,7 +158,7 @@ const Admin_Product_Management = ({ navigation }: any) => {
         if (action === 'delete') {
             Alert.alert(
                 'Delete Product',
-                `Are you sure you want to permanently delete "${product.name}"?\n\nThis action cannot be undone.`,
+                `Delete "${product.name}"? This will permanently remove it from all users.\n\nAdmins can still view it in the "Deleted" filter.`,
                 [
                     { text: 'Cancel', style: 'cancel' },
                     {
@@ -185,11 +198,17 @@ const Admin_Product_Management = ({ navigation }: any) => {
 
         try {
             setProcessingId(product.productID);
-            await apiService.adminProductAction({
-                productID: product.productID,
-                action: action,
-                reason: action === 'reject' ? actionReason : undefined
-            });
+            
+            if (action === 'delete') {
+                await apiService.softDeleteProduct(product.productID);
+            } else {
+                await apiService.adminProductAction({
+                    productID: product.productID,
+                    action: action,
+                    reason: action === 'reject' ? actionReason : undefined
+                });
+            }
+            
             Alert.alert('Success', `Product ${actionLabels[action].toLowerCase()}d successfully`);
             setShowActionModal(false);
             await fetchProducts();
@@ -303,9 +322,10 @@ const Admin_Product_Management = ({ navigation }: any) => {
         const visibility = getVisibilityStatus(item);
         const imageUrl = item.image_path ? `${imageBaseUrl}${item.image_path}` : null;
         const isProcessing = processingId === item.productID;
+        const isDeleted = item.is_deleted === 1;
 
         return (
-            <View style={[styles.productCard, { borderLeftColor: statusConfig.color, borderLeftWidth: 4 }]}>
+            <View style={[styles.productCard, { borderLeftColor: statusConfig.color, borderLeftWidth: 4, opacity: isDeleted ? 0.6 : 1 }]}>
                 <TouchableOpacity 
                     style={styles.cardContent}
                     onPress={() => handleViewProduct(item.productID)}
@@ -319,15 +339,24 @@ const Admin_Product_Management = ({ navigation }: any) => {
                                 <Ionicons name="image-outline" size={30} color="#ccc" />
                             </View>
                         )}
-                        <View style={[styles.visibilityBadge, { backgroundColor: visibility.color }]}>
-                            <Ionicons name={visibility.icon as any} size={10} color="#fff" />
-                            <Text style={styles.visibilityBadgeText}>{visibility.label}</Text>
-                        </View>
+                        {isDeleted && (
+                            <View style={styles.deletedBadge}>
+                                <Ionicons name="skull-outline" size={12} color="#fff" />
+                                <Text style={styles.deletedBadgeText}>Ghost</Text>
+                            </View>
+                        )}
+                        {!isDeleted && (
+                            <View style={[styles.visibilityBadge, { backgroundColor: visibility.color }]}>
+                                <Ionicons name={visibility.icon as any} size={10} color="#fff" />
+                                <Text style={styles.visibilityBadgeText}>{visibility.label}</Text>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.productInfo}>
-                        <Text style={styles.productName} numberOfLines={1}>
+                        <Text style={[styles.productName, isDeleted && styles.deletedText]} numberOfLines={1}>
                             {item.name}
+                            {isDeleted && ' 💀'}
                         </Text>
                         <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
                         <View style={styles.productMeta}>
@@ -341,6 +370,9 @@ const Admin_Product_Management = ({ navigation }: any) => {
                             </Text>
                         </View>
                         <Text style={styles.sellerName}>👤 {item.sellerName}</Text>
+                        {isDeleted && (
+                            <Text style={styles.deletedDate}>🗑️ Deleted</Text>
+                        )}
                     </View>
                 </TouchableOpacity>
 
@@ -353,15 +385,17 @@ const Admin_Product_Management = ({ navigation }: any) => {
                         <Text style={styles.viewButtonText}>View</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        style={[styles.actionButton, styles.editButton]}
-                        onPress={() => handleEditProduct(item)}
-                    >
-                        <Ionicons name="create-outline" size={14} color="#4CAF50" />
-                        <Text style={styles.editButtonText}>Edit</Text>
-                    </TouchableOpacity>
+                    {!isDeleted && (
+                        <TouchableOpacity 
+                            style={[styles.actionButton, styles.editButton]}
+                            onPress={() => handleEditProduct(item)}
+                        >
+                            <Ionicons name="create-outline" size={14} color="#4CAF50" />
+                            <Text style={styles.editButtonText}>Edit</Text>
+                        </TouchableOpacity>
+                    )}
 
-                    {item.status === 'pending' && (
+                    {item.status === 'pending' && !isDeleted && (
                         <>
                             <TouchableOpacity 
                                 style={[styles.actionButton, styles.approveButton]}
@@ -388,7 +422,7 @@ const Admin_Product_Management = ({ navigation }: any) => {
                         </>
                     )}
 
-                    {item.status !== 'pending' && (
+                    {item.status !== 'pending' && !isDeleted && (
                         <TouchableOpacity 
                             style={[styles.actionButton, item.can_display === 1 ? styles.hideButton : styles.showButton]}
                             onPress={() => handleAction(item, item.can_display === 1 ? 'hide' : 'show')}
@@ -411,17 +445,19 @@ const Admin_Product_Management = ({ navigation }: any) => {
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity 
-                        style={[styles.actionButton, styles.deleteButton]}
-                        onPress={() => handleAction(item, 'delete')}
-                        disabled={isProcessing}
-                    >
-                        {isProcessing ? (
-                            <ActivityIndicator size="small" color="#FF6B6B" />
-                        ) : (
-                            <Ionicons name="trash-outline" size={14} color="#FF6B6B" />
-                        )}
-                    </TouchableOpacity>
+                    {!isDeleted && (
+                        <TouchableOpacity 
+                            style={[styles.actionButton, styles.deleteButton]}
+                            onPress={() => handleAction(item, 'delete')}
+                            disabled={isProcessing}
+                        >
+                            {isProcessing ? (
+                                <ActivityIndicator size="small" color="#FF6B6B" />
+                            ) : (
+                                <Ionicons name="trash-outline" size={14} color="#FF6B6B" />
+                            )}
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         );
@@ -544,31 +580,31 @@ const Admin_Product_Management = ({ navigation }: any) => {
                     >
                         <Ionicons name="options-outline" size={18} color="#555" />
                         <Text style={styles.filterButtonText}>
-                            {statusFilter === 'all' ? 'All' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                            {statusFilter === 'all' ? 'All' : 
+                             statusFilter === 'deleted' ? '🗑️ Deleted' :
+                             statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
                         </Text>
                         <Ionicons name={showFilterDropdown ? "chevron-up" : "chevron-down"} size={16} color="#555" />
                     </TouchableOpacity>
 
                     {showFilterDropdown && (
                         <View style={styles.filterDropdown}>
-                            {['all', 'pending', 'approved', 'rejected'].map((status) => (
+                            {['all', 'pending', 'approved', 'rejected', 'deleted'].map((status) => (
                                 <TouchableOpacity
                                     key={status}
                                     style={[
                                         styles.filterDropdownItem,
                                         statusFilter === status && styles.filterDropdownItemActive
                                     ]}
-                                    onPress={() => {
-                                        setStatusFilter(status);
-                                        setShowFilterDropdown(false);
-                                        setPage(1);
-                                    }}
+                                    onPress={() => applyFilter(status)}
                                 >
                                     <Text style={[
                                         styles.filterDropdownText,
                                         statusFilter === status && styles.filterDropdownTextActive
                                     ]}>
-                                        {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+                                        {status === 'all' ? 'All' :
+                                         status === 'deleted' ? '🗑️ Deleted' :
+                                         status.charAt(0).toUpperCase() + status.slice(1)}
                                     </Text>
                                     {statusFilter === status && (
                                         <Ionicons name="checkmark" size={16} color="#4CAF50" />
@@ -592,7 +628,9 @@ const Admin_Product_Management = ({ navigation }: any) => {
                     <Text style={styles.emptySubtext}>
                         {searchQuery.trim() 
                             ? 'No products match your search.' 
-                            : 'No products have been listed yet.'}
+                            : statusFilter === 'deleted' 
+                                ? 'No products have been deleted.' 
+                                : 'No products have been listed yet.'}
                     </Text>
                 </View>
             ) : (
@@ -637,6 +675,13 @@ const Admin_Product_Management = ({ navigation }: any) => {
                                         style={styles.modalImage}
                                         defaultSource={require('../assets/placeholder.png')}
                                     />
+                                    
+                                    {selectedProduct.is_deleted === 1 && (
+                                        <View style={styles.modalDeletedBadge}>
+                                            <Ionicons name="skull-outline" size={16} color="#fff" />
+                                            <Text style={styles.modalDeletedBadgeText}>Ghost Product</Text>
+                                        </View>
+                                    )}
                                     
                                     <Text style={styles.modalProductName}>{selectedProduct.name}</Text>
                                     <Text style={styles.modalProductPrice}>${selectedProduct.price.toFixed(2)}</Text>
@@ -1110,6 +1155,32 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
     },
+    deletedBadge: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(108, 92, 231, 0.9)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        gap: 3,
+    },
+    deletedBadgeText: {
+        fontSize: 9,
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    deletedText: {
+        color: '#999',
+    },
+    deletedDate: {
+        fontSize: 11,
+        color: '#6C5CE7',
+        marginTop: 2,
+        fontWeight: '500',
+    },
     productInfo: {
         flex: 1,
         marginLeft: 12,
@@ -1212,6 +1283,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#FF6B6B',
         paddingHorizontal: 8,
+    },
+    deleteButtonText: {
+        fontSize: 10,
+        color: '#FF6B6B',
+        fontWeight: '500',
     },
     actionButtonText: {
         fontSize: 10,
@@ -1341,6 +1417,22 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5',
         borderRadius: 10,
         marginBottom: 12,
+    },
+    modalDeletedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#6C5CE7',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+        gap: 6,
+        marginBottom: 8,
+    },
+    modalDeletedBadgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     modalProductName: {
         fontSize: 20,

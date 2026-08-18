@@ -26,7 +26,7 @@ const Customer_Product_Detail = ({ route, navigation }: any) => {
   const { isAuthenticated } = useAuth(); 
 
 
-  const imageBaseUrl = 'http://192.168.0.107/Thrift_Shop_api/';
+  const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
 
   useEffect(() => {
     if (productId) {

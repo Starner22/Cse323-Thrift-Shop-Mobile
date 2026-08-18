@@ -76,12 +76,9 @@ const Admin_Order_Management = ({ navigation }: any) => {
         totalRevenue: 0
     });
 
-    // Search state
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-
-    // Modals
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -298,35 +295,35 @@ const Admin_Order_Management = ({ navigation }: any) => {
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                     <Text style={styles.statNumber}>{stats.total}</Text>
-                    <Text style={styles.statLabel}>📦 Total</Text>
+                    <Text style={styles.statLabel}>Total</Text>
                 </View>
                 <View style={styles.statCard}>
                     <Text style={[styles.statNumber, { color: '#FF9F43' }]}>{stats.pending}</Text>
-                    <Text style={styles.statLabel}>⏳ Pending</Text>
+                    <Text style={styles.statLabel}>Pending</Text>
                 </View>
                 <View style={styles.statCard}>
                     <Text style={[styles.statNumber, { color: '#3498DB' }]}>{stats.processing}</Text>
-                    <Text style={styles.statLabel}>🔄 Processing</Text>
+                    <Text style={styles.statLabel}>Processing</Text>
                 </View>
                 <View style={styles.statCard}>
                     <Text style={[styles.statNumber, { color: '#6C5CE7' }]}>{stats.shipped}</Text>
-                    <Text style={styles.statLabel}>📦 Shipped</Text>
+                    <Text style={styles.statLabel}>Shipped</Text>
                 </View>
             </View>
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                     <Text style={[styles.statNumber, { color: '#4CAF50' }]}>{stats.completed}</Text>
-                    <Text style={styles.statLabel}>✅ Completed</Text>
+                    <Text style={styles.statLabel}>Completed</Text>
                 </View>
                 <View style={styles.statCard}>
                     <Text style={[styles.statNumber, { color: '#FF6B6B' }]}>{stats.cancelled}</Text>
-                    <Text style={styles.statLabel}>❌ Cancelled</Text>
+                    <Text style={styles.statLabel}>Cancelled</Text>
                 </View>
                 <View style={[styles.statCard, styles.revenueCard]}>
                     <Text style={[styles.statNumber, { color: '#4CAF50' }]}>
                         {formatCurrency(stats.totalRevenue)}
                     </Text>
-                    <Text style={styles.statLabel}>💰 Revenue</Text>
+                    <Text style={styles.statLabel}>Revenue</Text>
                 </View>
             </View>
         </View>
@@ -432,7 +429,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -443,10 +439,8 @@ const Admin_Order_Management = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Stats */}
             {renderStats()}
 
-            {/* Search and Filter */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                     <Ionicons name="search" size={20} color="#999" />
@@ -478,46 +472,8 @@ const Admin_Order_Management = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.filterContainer}>
-                    <TouchableOpacity 
-                        style={styles.filterButton}
-                        onPress={() => setShowFilterDropdown(!showFilterDropdown)}
-                    >
-                        <Ionicons name="options-outline" size={18} color="#555" />
-                        <Text style={styles.filterButtonText}>
-                            {activeFilter === 'all' ? 'All Orders' : activeFilter}
-                        </Text>
-                        <Ionicons name={showFilterDropdown ? "chevron-up" : "chevron-down"} size={16} color="#555" />
-                    </TouchableOpacity>
-
-                    {showFilterDropdown && (
-                        <View style={styles.filterDropdown}>
-                            {['all', 'Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'].map((status) => (
-                                <TouchableOpacity
-                                    key={status}
-                                    style={[
-                                        styles.filterDropdownItem,
-                                        activeFilter === status && styles.filterDropdownItemActive
-                                    ]}
-                                    onPress={() => applyFilter(status)}
-                                >
-                                    <Text style={[
-                                        styles.filterDropdownText,
-                                        activeFilter === status && styles.filterDropdownTextActive
-                                    ]}>
-                                        {status === 'all' ? 'All Orders' : status}
-                                    </Text>
-                                    {activeFilter === status && (
-                                        <Ionicons name="checkmark" size={16} color="#4CAF50" />
-                                    )}
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
-                </View>
             </View>
 
-            {/* Filter Tabs */}
             <View style={styles.filterTabs}>
                 {[
                     { key: 'all', label: 'All' },
@@ -588,9 +544,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
                 />
             )}
 
-            {/* ============================================================
-                ORDER DETAILS MODAL
-            ============================================================ */}
             <Modal
                 visible={showDetailsModal}
                 transparent
@@ -613,7 +566,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             {selectedOrder && (
                                 <View style={styles.modalBody}>
-                                    {/* Status */}
                                     <View style={styles.modalStatusRow}>
                                         <Text style={styles.modalLabel}>Status:</Text>
                                         <View style={[styles.modalStatusBadge, { backgroundColor: getStatusConfig(selectedOrder.orderStatus).color + '20' }]}>
@@ -624,7 +576,7 @@ const Admin_Order_Management = ({ navigation }: any) => {
                                         </View>
                                     </View>
 
-                                    {/* Payment Status */}
+
                                     <View style={styles.modalStatusRow}>
                                         <Text style={styles.modalLabel}>Payment:</Text>
                                         <View style={[styles.modalStatusBadge, { backgroundColor: selectedOrder.payment_status === 'Paid' ? '#4CAF5020' : '#FF9F4320' }]}>
@@ -635,7 +587,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
                                         </View>
                                     </View>
 
-                                    {/* Buyer Info */}
                                     <Text style={styles.modalSectionTitle}>👤 Buyer</Text>
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>Name:</Text>
@@ -646,7 +597,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
                                         <Text style={styles.modalValue}>{selectedOrder.buyer_email}</Text>
                                     </View>
 
-                                    {/* Order Items */}
                                     <Text style={styles.modalSectionTitle}>📦 Items</Text>
                                     {selectedOrder.items && selectedOrder.items.map((item) => (
                                         <View key={item.orderItemID} style={styles.modalOrderItem}>
@@ -677,7 +627,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
 
                                     <View style={styles.modalDivider} />
 
-                                    {/* Totals */}
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>Total:</Text>
                                         <Text style={[styles.modalValue, { fontWeight: 'bold', color: '#4CAF50' }]}>
@@ -685,7 +634,7 @@ const Admin_Order_Management = ({ navigation }: any) => {
                                         </Text>
                                     </View>
 
-                                    {/* Shipping */}
+
                                     <Text style={styles.modalSectionTitle}>📍 Shipping</Text>
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>Name:</Text>
@@ -749,9 +698,7 @@ const Admin_Order_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* ============================================================
-                UPDATE STATUS MODAL
-            ============================================================ */}
+
             <Modal
                 visible={showStatusModal}
                 transparent
@@ -818,9 +765,6 @@ const Admin_Order_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* ============================================================
-                CANCEL ORDER MODAL
-            ============================================================ */}
             <Modal
                 visible={showCancelModal}
                 transparent
@@ -942,7 +886,7 @@ const styles = StyleSheet.create({
         color: '#999',
         marginTop: 1,
     },
-    // Search and Filter
+
     searchContainer: {
         flexDirection: 'row',
         padding: 12,
@@ -1039,7 +983,7 @@ const styles = StyleSheet.create({
         color: '#4CAF50',
         fontWeight: '600',
     },
-    // Filter Tabs
+
     filterTabs: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -1107,7 +1051,7 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 20,
     },
-    // Order Card
+
     orderCard: {
         backgroundColor: '#fff',
         borderRadius: 12,
@@ -1292,9 +1236,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // ============================================================
-    // MODAL STYLES
-    // ============================================================
+
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1452,9 +1394,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
-    // ============================================================
-    // STATUS MODAL
-    // ============================================================
+
     statusModalContent: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
@@ -1532,9 +1472,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
     },
-    // ============================================================
-    // CANCEL MODAL
-    // ============================================================
+
     cancelModalContent: {
         flex: 1,
         justifyContent: 'flex-end',

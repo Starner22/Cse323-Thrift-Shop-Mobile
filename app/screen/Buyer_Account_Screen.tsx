@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,13 +7,56 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    Alert
+    Alert,
+    RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { apiService } from '../service/api_calls';
 
 const Buyer_Account_Screen = ({ navigation }: any) => {
     const { user, isAuthenticated, logout } = useAuth();
+    const [refreshing, setRefreshing] = useState(false);
+    const [wishlistCount, setWishlistCount] = useState(0);
+    const [cartCount, setCartCount] = useState(0);
+    const [orderStats, setOrderStats] = useState({
+        total: 0,
+        pending: 0
+    });
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchCounts();
+        }
+    }, [isAuthenticated]);
+
+    const fetchCounts = async () => {
+        try {
+            const wishlist = await apiService.getWishlist();
+            setWishlistCount(Array.isArray(wishlist) ? wishlist.length : 0);
+
+            const cart = await apiService.getCart();
+            setCartCount(cart.totalItems || 0);
+
+            const ordersResponse = await apiService.getMyOrders();
+            if (ordersResponse && ordersResponse.success) {
+                const orders = ordersResponse.data || [];
+                const pending = orders.filter((o: any) => o.orderStatus === 'Pending').length;
+                setOrderStats({
+                    total: orders.length,
+                    pending: pending
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching counts:', error);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchCounts();
+        setRefreshing(false);
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -47,11 +90,12 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
 
     const handleBecomeSeller = () => {
         navigation.navigate('BecomeSeller');
-    };  
+    };
 
     const handleOrders = () => {
         navigation.navigate('OrderHistory');
     };
+
     const handleWishlist = () => {
         navigation.navigate('Wishlist');
     };
@@ -60,7 +104,6 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('Cart');
     };
 
-    // Get user initials for avatar
     const getUserInitials = () => {
         if (!user?.name) return '?';
         const names = user.name.split(' ');
@@ -115,7 +158,6 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -126,8 +168,10 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Profile Header */}
+            <ScrollView 
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: getRoleColor(user?.role) }]}>
@@ -145,96 +189,134 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
                     </Text>
                 </View>
 
-                {/* Stats Cards - Now with colored icons */}
+
                 <View style={styles.statsContainer}>
                     <TouchableOpacity style={styles.statCard} onPress={handleOrders}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#e8f5e9' }]}>
-                            <Ionicons name="cube-outline" size={24} color="#4CAF50" />
+                        <View style={[styles.statIconContainer, { backgroundColor: '#e3f2fd' }]}>
+                            <Ionicons name="receipt-outline" size={24} color="#2196F3" />
                         </View>
+                        <Text style={styles.statNumber}>{orderStats.total}</Text>
                         <Text style={styles.statLabel}>Orders</Text>
+                        {orderStats.pending > 0 && (
+                            <View style={styles.statBadge}>
+                                <Text style={styles.statBadgeText}>{orderStats.pending} pending</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.statCard} onPress={handleWishlist}>
                         <View style={[styles.statIconContainer, { backgroundColor: '#fce4ec' }]}>
                             <Ionicons name="heart-outline" size={24} color="#FF6B6B" />
                         </View>
+                        <Text style={styles.statNumber}>{wishlistCount}</Text>
                         <Text style={styles.statLabel}>Wishlist</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.statCard} onPress={handleCart}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#e3f2fd' }]}>
-                            <Ionicons name="cart-outline" size={24} color="#2196F3" />
+                        <View style={[styles.statIconContainer, { backgroundColor: '#fff3e0' }]}>
+                            <Ionicons name="cart-outline" size={24} color="#FF9800" />
                         </View>
+                        <Text style={styles.statNumber}>{cartCount}</Text>
                         <Text style={styles.statLabel}>Cart Items</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Account Settings - With colored icons */}
-                <View style={styles.settingsContainer}>
-                    <Text style={styles.settingsTitle}>Account Settings</Text>
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Buyer Tools</Text>
 
-                    <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
-                        <View style={styles.settingLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
-                                <Ionicons name="person-outline" size={20} color="#4CAF50" />
-                            </View>
-                            <Text style={styles.settingText}>Edit Profile</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.settingItem} onPress={handleChangePassword}>
-                        <View style={styles.settingLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
-                                <Ionicons name="lock-closed-outline" size={20} color="#FF9800" />
-                            </View>
-                            <Text style={styles.settingText}>Change Password</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.settingItem} onPress={handleAddresses}>
-                        <View style={styles.settingLeft}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleOrders}>
+                        <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
-                                <Ionicons name="location-outline" size={20} color="#2196F3" />
+                                <Ionicons name="receipt-outline" size={22} color="#2196F3" />
                             </View>
-                            <Text style={styles.settingText}>My Addresses</Text>
+                            <Text style={styles.menuText}>My Orders</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        <View style={styles.menuRight}>
+                            {orderStats.pending > 0 && (
+                                <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{orderStats.pending}</Text>
+                            )}
+                            {orderStats.total > 0 && (
+                                <Text style={styles.menuBadge}>{orderStats.total}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.settingItem} onPress={handleBecomeSeller}>
-                        <View style={styles.settingLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
-                                <Ionicons name="storefront-outline" size={20} color="#4CAF50" />
-                            </View>
-                            <Text style={styles.settingText}>Become a Seller</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.settingItem} onPress={handleOrders}>
-                        <View style={styles.settingLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
-                                <Ionicons name="receipt-outline" size={20} color="#4CAF50" />
-                            </View>
-                            <Text style={styles.settingText}>My Orders</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.settingItem} onPress={handleWishlist}>
-                        <View style={styles.settingLeft}>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleWishlist}>
+                        <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
-                                <Ionicons name="heart-outline" size={20} color="#FF6B6B" />
+                                <Ionicons name="heart-outline" size={22} color="#FF6B6B" />
                             </View>
-                            <Text style={styles.settingText}>My Wishlist</Text>
+                            <Text style={styles.menuText}>My Wishlist</Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {wishlistCount > 0 && (
+                                <Text style={styles.menuBadge}>{wishlistCount}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleCart}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="cart-outline" size={22} color="#FF9800" />
+                            </View>
+                            <Text style={styles.menuText}>My Cart</Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {cartCount > 0 && (
+                                <Text style={styles.menuBadge}>{cartCount}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleBecomeSeller}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="storefront-outline" size={22} color="#4CAF50" />
+                            </View>
+                            <Text style={styles.menuText}>Become a Seller</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
                 </View>
 
-                {/* Logout Button */}
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Account Settings</Text>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="person-outline" size={22} color="#4CAF50" />
+                            </View>
+                            <Text style={styles.menuText}>Edit Profile</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleChangePassword}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="lock-closed-outline" size={22} color="#FF9800" />
+                            </View>
+                            <Text style={styles.menuText}>Change Password</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleAddresses}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="location-outline" size={22} color="#2196F3" />
+                            </View>
+                            <Text style={styles.menuText}>My Addresses</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                </View>
+
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={22} color="#FF6B6B" />
                     <Text style={styles.logoutButtonText}>Logout</Text>
@@ -271,7 +353,7 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
-    // Not logged in
+
     notLoggedInContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -302,7 +384,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Profile Header
+
     profileHeader: {
         backgroundColor: '#fff',
         alignItems: 'center',
@@ -358,7 +440,6 @@ const styles = StyleSheet.create({
         color: '#999',
         marginTop: 4,
     },
-    // Stats
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -371,6 +452,7 @@ const styles = StyleSheet.create({
     statCard: {
         alignItems: 'center',
         flex: 1,
+        position: 'relative',
     },
     statIconContainer: {
         width: 44,
@@ -380,25 +462,41 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 4,
     },
+    statNumber: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+    },
     statLabel: {
         fontSize: 12,
         color: '#999',
         textAlign: 'center',
     },
-    // Settings
-    settingsContainer: {
+    statBadge: {
+        backgroundColor: '#FF6B6B',
+        borderRadius: 10,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        marginTop: 2,
+    },
+    statBadgeText: {
+        fontSize: 9,
+        color: '#fff',
+        fontWeight: '600',
+    },
+    menuContainer: {
         backgroundColor: '#fff',
         marginTop: 8,
         paddingHorizontal: 16,
         paddingVertical: 8,
     },
-    settingsTitle: {
+    menuTitle: {
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
         paddingVertical: 12,
     },
-    settingItem: {
+    menuItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -406,21 +504,40 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
-    settingLeft: {
+    menuLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     menuIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
-    settingText: {
+    menuText: {
         fontSize: 16,
         color: '#333',
+    },
+    menuRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    menuBadge: {
+        backgroundColor: '#4CAF50',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginRight: 8,
+        minWidth: 20,
+        textAlign: 'center',
+    },
+    menuBadgeWarning: {
+        backgroundColor: '#FF6B6B',
     },
     logoutButton: {
         flexDirection: 'row',

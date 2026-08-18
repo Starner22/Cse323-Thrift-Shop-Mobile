@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../service/api_calls';
 
+
 interface HistoryEntry {
     historyID: number;
     action: string;
@@ -48,54 +49,44 @@ interface HistoryEntry {
     } | null;
 }
 
-// ============================================================
-// HELPER: Format details for display
-// ============================================================
+
 const formatDetails = (details: string | null, action: string): string | null => {
     if (!details) return null;
-    
+   
     try {
         const data = JSON.parse(details);
-        
-        // If there's a summary, use it
+
         if (data.summary) {
             return data.summary;
         }
-        
-        // Handle edit actions
+       
         if (action.startsWith('edit_')) {
             if (data.updated_fields) {
                 return 'Updated: ' + data.updated_fields.join(', ');
             }
         }
-        
-        // Handle reject/suspend with reason
+       
         if (['reject_seller', 'reject_product', 'suspend_seller'].includes(action)) {
             if (data.reason) {
                 return 'Reason: ' + data.reason;
             }
-            // If data is a string (legacy format)
             if (typeof data === 'string') {
                 return 'Reason: ' + data;
             }
-            // If details is a plain string
             if (typeof details === 'string' && !details.startsWith('{')) {
                 return 'Reason: ' + details;
             }
         }
-        
-        // Handle restore
+       
         if (action === 'restore_seller' || action === 'restore_user') {
-            return null; // No details needed for restore
+            return null;
         }
-        
-        // Handle add_note
+       
         if (action === 'add_note') {
             if (data.note) return 'Note: ' + data.note;
             if (typeof data === 'string') return 'Note: ' + data;
         }
-        
-        // Handle delete_user
+    
         if (action === 'delete_user') {
             if (data.deleted_user) {
                 let msg = 'Deleted user: ' + data.deleted_user;
@@ -105,8 +96,6 @@ const formatDetails = (details: string | null, action: string): string | null =>
                 return msg;
             }
         }
-        
-        // Handle remove_moderator
         if (action === 'remove_moderator') {
             if (data.deleted_moderator) {
                 return 'Removed moderator: ' + data.deleted_moderator;
@@ -115,8 +104,6 @@ const formatDetails = (details: string | null, action: string): string | null =>
                 return data;
             }
         }
-        
-        // Handle add_moderator
         if (action === 'add_moderator') {
             if (data.added_moderator) {
                 return 'Added moderator: ' + data.added_moderator;
@@ -125,12 +112,10 @@ const formatDetails = (details: string | null, action: string): string | null =>
                 return data;
             }
         }
-        
-        // Handle update_permissions
         if (action === 'update_permissions') {
             return 'Updated permissions';
         }
-        
+       
         return null;
     } catch (e) {
         // Not JSON, return as is if it looks like a reason
@@ -141,6 +126,7 @@ const formatDetails = (details: string | null, action: string): string | null =>
     }
 };
 
+
 const Admin_All_Moderation_History = ({ navigation }: any) => {
     const { user, isAuthenticated } = useAuth();
     const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -149,16 +135,17 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
     const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [filter, setFilter] = useState<string>('all');
-    
-    // Date filters
+   
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
+
 
     useEffect(() => {
         if (isAuthenticated) {
             fetchHistory();
         }
     }, [isAuthenticated]);
+
 
     const fetchHistory = async () => {
         try {
@@ -201,15 +188,18 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         }
     };
 
+
     const onRefresh = async () => {
         setRefreshing(true);
         await fetchHistory();
         setRefreshing(false);
     };
 
+
     const handleApplyFilters = () => {
         fetchHistory();
     };
+
 
     const handleClearFilters = () => {
         setFromDate('');
@@ -218,10 +208,12 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         fetchHistory();
     };
 
+
     const handleViewDetails = (entry: HistoryEntry) => {
         setSelectedEntry(entry);
         setShowDetailModal(true);
     };
+
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
@@ -233,6 +225,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         }
     };
 
+
     const getCategoryColor = (category: string) => {
         switch (category) {
             case 'seller': return '#FF9800';
@@ -243,17 +236,19 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         }
     };
 
+
     const getActionColor = (action: string) => {
         const approveActions = ['approve_seller', 'approve_product', 'add_moderator', 'restore_seller', 'restore_user', 'show_product'];
         const rejectActions = ['reject_seller', 'reject_product', 'delete_seller', 'delete_product', 'delete_user', 'remove_moderator', 'suspend_seller', 'suspend_user', 'hide_product'];
         const editActions = ['edit_seller', 'edit_product', 'edit_user', 'edit_moderator', 'update_permissions'];
-        
+       
         if (approveActions.includes(action)) return '#4CAF50';
         if (rejectActions.includes(action)) return '#FF6B6B';
         if (editActions.includes(action)) return '#3498DB';
         if (action === 'add_note') return '#9C27B0';
         return '#999';
     };
+
 
     const getActionLabel = (action: string) => {
         const labels: { [key: string]: string } = {
@@ -282,28 +277,32 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         return labels[action] || action.replace('_', ' ');
     };
 
+
     const formatDate = (dateString: string) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const filteredHistory = filter === 'all' 
-        ? history 
+
+    const filteredHistory = filter === 'all'
+        ? history
         : history.filter(h => h.action_category === filter);
+
 
     const renderHistoryItem = ({ item }: { item: HistoryEntry }) => {
         const actionColor = getActionColor(item.action);
         const categoryColor = getCategoryColor(item.action_category);
         const categoryIcon = getCategoryIcon(item.action_category);
-        
+       
         const moderatorName = item.moderator?.name || item.moderator_name || 'Unknown';
         const targetName = item.target_user?.name || item.target_user_name || null;
         const targetRole = item.target_user?.role || item.target_user_role || null;
         const productName = item.target_product?.name || item.target_product_name || null;
 
+
         return (
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.historyCard, { borderLeftColor: actionColor, borderLeftWidth: 4 }]}
                 onPress={() => handleViewDetails(item)}
                 activeOpacity={0.7}
@@ -326,6 +325,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                     <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
                 </View>
 
+
                 <View style={styles.cardBody}>
                     {targetName && (
                         <View style={styles.targetContainer}>
@@ -344,11 +344,12 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                             </Text>
                         </View>
                     )}
-                    {/* REMOVED: details preview - only show in modal */}
+
                 </View>
             </TouchableOpacity>
         );
     };
+
 
     if (!isAuthenticated || user?.role !== 'Admin') {
         return (
@@ -360,7 +361,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                     <Text style={styles.authRequiredSubtext}>
                         You need admin privileges to view all moderation history.
                     </Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.loginButton}
                         onPress={() => navigation.goBack()}
                     >
@@ -371,11 +372,11 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         );
     }
 
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -386,7 +387,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Filter Section */}
             <View style={styles.filterSection}>
                 <View style={styles.filterRow}>
                     <View style={styles.filterInputGroup}>
@@ -411,15 +411,16 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                     </View>
                 </View>
 
+
                 <View style={styles.filterActions}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.filterActionButton, styles.applyButton]}
                         onPress={handleApplyFilters}
                     >
                         <Ionicons name="search" size={16} color="#fff" />
                         <Text style={styles.filterActionText}>Apply</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={[styles.filterActionButton, styles.clearButton]}
                         onPress={handleClearFilters}
                     >
@@ -429,7 +430,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                 </View>
             </View>
 
-            {/* Category Filter Tabs */}
             <View style={styles.filterContainer}>
                 {[
                     { key: 'all', label: 'All' },
@@ -453,6 +453,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                 })}
             </View>
 
+
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#4CAF50" />
@@ -463,8 +464,8 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                     <Ionicons name="document-text-outline" size={80} color="#ccc" />
                     <Text style={styles.emptyTitle}>No History Found</Text>
                     <Text style={styles.emptySubtext}>
-                        {filter === 'all' 
-                            ? 'No moderation actions have been logged yet.' 
+                        {filter === 'all'
+                            ? 'No moderation actions have been logged yet.'
                             : `No ${filter} actions found.`}
                     </Text>
                 </View>
@@ -479,7 +480,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                 />
             )}
 
-            {/* Detail Modal */}
             <Modal
                 visible={showDetailModal}
                 transparent
@@ -487,7 +487,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                 onRequestClose={() => setShowDetailModal(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.modalBackground}
                         onPress={() => setShowDetailModal(false)}
                     />
@@ -499,6 +499,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                             </TouchableOpacity>
                         </View>
 
+
                         <ScrollView showsVerticalScrollIndicator={false}>
                             {selectedEntry && (
                                 <View style={styles.modalBody}>
@@ -509,6 +510,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                         </Text>
                                     </View>
 
+
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>Category:</Text>
                                         <Text style={styles.modalValue}>
@@ -516,7 +518,9 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                         </Text>
                                     </View>
 
+
                                     <View style={styles.modalDivider} />
+
 
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>Moderator:</Text>
@@ -525,6 +529,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                             {selectedEntry.moderator?.role ? ` (${selectedEntry.moderator.role})` : ''}
                                         </Text>
                                     </View>
+
 
                                     {selectedEntry.target_user && (
                                         <View style={styles.modalRow}>
@@ -538,6 +543,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                         </View>
                                     )}
 
+
                                     {selectedEntry.target_product && (
                                         <View style={styles.modalRow}>
                                             <Text style={styles.modalLabel}>Target Product:</Text>
@@ -550,6 +556,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                         </View>
                                     )}
 
+
                                     {selectedEntry.details && (
                                         <>
                                             <View style={styles.modalDivider} />
@@ -560,7 +567,9 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                         </>
                                     )}
 
+
                                     <View style={styles.modalDivider} />
+
 
                                     <View style={styles.modalRow}>
                                         <Text style={styles.modalLabel}>Time:</Text>
@@ -568,6 +577,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                                             {formatDate(selectedEntry.created_at)}
                                         </Text>
                                     </View>
+
 
                                     {selectedEntry.ip_address && (
                                         <View style={styles.modalRow}>
@@ -581,7 +591,8 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                             )}
                         </ScrollView>
 
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.modalCloseButton}
                             onPress={() => setShowDetailModal(false)}
                         >
@@ -593,6 +604,7 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         </SafeAreaView>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {
@@ -619,7 +631,6 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
-    // Filter Section
     filterSection: {
         backgroundColor: '#fff',
         paddingHorizontal: 16,
@@ -854,7 +865,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Modal
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -931,4 +941,6 @@ const styles = StyleSheet.create({
     },
 });
 
+
 export default Admin_All_Moderation_History;
+

@@ -62,23 +62,16 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
         password: '',
         confirmPassword: ''
     });
-    
-    // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalModerators, setTotalModerators] = useState(0);
     const limit = 15;
-
-    // Modals
     const [showAddModal, setShowAddModal] = useState(false);
     const [showPermissionsModal, setShowPermissionsModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedModerator, setSelectedModerator] = useState<Moderator | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
     const [expandedPermissions, setExpandedPermissions] = useState<{ [key: number]: boolean }>({});
-
-
-    // Add Moderator Form
     const [addForm, setAddForm] = useState({
         name: '',
         email: '',
@@ -114,7 +107,7 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
         }));
     };
 
-    // Edit Permissions Form
+
     const [editPermissions, setEditPermissions] = useState({
         can_moderate_sellers: false,
         can_moderate_products: false,
@@ -532,7 +525,6 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
         );
     };
 
-    // PERMISSION TOGGLE ROW (for modals)
     const renderPermissionToggle = (
         key: keyof typeof editPermissions,
         label: string,
@@ -585,7 +577,6 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -602,7 +593,7 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search and Filter */}
+
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                     <Ionicons name="search" size={20} color="#999" />
@@ -715,7 +706,7 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
                 </>
             )}
 
-            {/* View Moderator Modal */}
+
             <Modal
                 visible={showViewModal}
                 transparent
@@ -807,7 +798,7 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
             </Modal>
 
 
-            {/* Add Moderator Modal */}
+
             <Modal
                 visible={showAddModal}
                 transparent
@@ -929,7 +920,6 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Edit Details Modal */}
             <Modal
                 visible={showEditDetailsModal}
                 transparent
@@ -1050,7 +1040,6 @@ const Admin_Moderator_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Edit Permissions Modal */}
             <Modal
                 visible={showPermissionsModal}
                 transparent
@@ -1253,7 +1242,6 @@ const styles = StyleSheet.create({
         paddingBottom: 12,
     },
     
-    // MODERATOR CARD STYLES
     moderatorCard: {
         backgroundColor: '#fff',
         borderRadius: 12,
@@ -1344,8 +1332,6 @@ const styles = StyleSheet.create({
         color: '#333',
         fontWeight: '500',
     },
-
-    // LED STYLES
     ledContainer: {
         width: 18,
         height: 18,
@@ -1392,7 +1378,6 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
 
-    // ACTION BUTTONS 
     actionButtons: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
@@ -1461,7 +1446,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '500',
     },
-    // EMPTY STATE
 
     emptyContainer: {
         flex: 1,
@@ -1511,8 +1495,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-
-    // PAGINATION
     paginationContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
@@ -1550,7 +1532,6 @@ const styles = StyleSheet.create({
         color: '#999',
     },
 
-    // VIEW MODAL - FULL SCREEN
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -1695,7 +1676,6 @@ const styles = StyleSheet.create({
         color: '#666',
         marginTop: 2,
     },
-    // ADD MODERATOR MODAL
     addModalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1716,7 +1696,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        height: '88%',  // 88% of screen height
+        height: '88%',  
         paddingBottom: 20,
     },
     addModalScrollContent: {
@@ -1822,9 +1802,6 @@ const styles = StyleSheet.create({
         paddingBottom: 34,
         maxHeight: '90%',
     },
-    // ============================================================
-    // EDIT PERMISSIONS MODAL
-    // ============================================================
     permissionsModalContent: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
@@ -1931,7 +1908,6 @@ const styles = StyleSheet.create({
         paddingLeft: 20,
     },
 
-    // EDIT DETAILS MODAL - FULL HEIGHT
     editDetailsModalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -1972,8 +1948,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-
-    // VIEW MODAL LOADING
     modalLoading: {
         padding: 40,
         alignItems: 'center',

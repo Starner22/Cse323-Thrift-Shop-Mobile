@@ -63,14 +63,10 @@ const Admin_Product_Management = ({ navigation }: any) => {
         pending: 0,
         rejected: 0
     });
-    
-    // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalProducts, setTotalProducts] = useState(0);
     const limit = 15;
-
-    // Modals
     const [showViewModal, setShowViewModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showActionModal, setShowActionModal] = useState(false);
@@ -78,8 +74,6 @@ const Admin_Product_Management = ({ navigation }: any) => {
     const [actionType, setActionType] = useState<'approve' | 'reject' | 'hide' | 'show' | 'delete' | null>(null);
     const [actionReason, setActionReason] = useState('');
     const [processingId, setProcessingId] = useState<number | null>(null);
-
-    // Edit Form
     const [editForm, setEditForm] = useState({
         name: '',
         description: '',
@@ -538,7 +532,6 @@ const Admin_Product_Management = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -547,10 +540,9 @@ const Admin_Product_Management = ({ navigation }: any) => {
                 <Text style={styles.countBadge}>{totalProducts}</Text>
             </View>
 
-            {/* Stats */}
+            {/* Stat Rows */}
             {renderStatsCard()}
 
-            {/* Search and Filter */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                     <Ionicons name="search" size={20} color="#999" />
@@ -647,7 +639,6 @@ const Admin_Product_Management = ({ navigation }: any) => {
                 </>
             )}
 
-            {/* View Product Modal */}
             <Modal
                 visible={showViewModal}
                 transparent
@@ -753,7 +744,6 @@ const Admin_Product_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Edit Product Modal */}
             <Modal
                 visible={showEditModal}
                 transparent
@@ -895,7 +885,6 @@ const Admin_Product_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Action Modal (Reject Reason) */}
             <Modal
                 visible={showActionModal}
                 transparent
@@ -1378,7 +1367,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         color: '#999',
     },
-    // Modals
+
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -1489,7 +1478,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Edit Modal
     editModalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1624,7 +1612,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Action Modal
     actionModalContent: {
         flex: 1,
         justifyContent: 'flex-end',

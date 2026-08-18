@@ -26,7 +26,6 @@ interface Category {
     categoryID: number;
     name: string;
     image_path: string;
-    created_at: string;
     product_count: number;
 }
 
@@ -36,20 +35,14 @@ const Admin_Category_Management = ({ navigation }: any) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    
-    // Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCategories, setTotalCategories] = useState(0);
     const limit = 15;
-
-    // Modals
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [processingId, setProcessingId] = useState<number | null>(null);
-
-    // Form states
     const [addForm, setAddForm] = useState({
         name: '',
         image: null as string | null
@@ -246,8 +239,7 @@ const Admin_Category_Management = ({ navigation }: any) => {
                     <View style={styles.categoryInfo}>
                         <Text style={styles.categoryName}>{item.name}</Text>
                         <View style={styles.categoryMeta}>
-                            <Text style={styles.categoryMetaText}>📦 {item.product_count || 0} products</Text>
-                            <Text style={styles.categoryMetaText}>📅 {formatDate(item.created_at)}</Text>
+                            <Text style={styles.categoryMetaText}>{item.product_count || 0} products</Text>
                         </View>
                     </View>
                 </View>
@@ -364,7 +356,6 @@ const Admin_Category_Management = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -381,7 +372,6 @@ const Admin_Category_Management = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                     <Ionicons name="search" size={20} color="#999" />
@@ -434,7 +424,6 @@ const Admin_Category_Management = ({ navigation }: any) => {
                 </>
             )}
 
-            {/* Add Category Modal */}
             <Modal
                 visible={showAddModal}
                 transparent
@@ -465,7 +454,6 @@ const Admin_Category_Management = ({ navigation }: any) => {
                                 keyboardShouldPersistTaps="handled"
                             >
                                 <View style={styles.modalForm}>
-                                    {/* Image Upload */}
                                     <View style={styles.imageSection}>
                                         <Text style={styles.label}>Category Image</Text>
                                         <TouchableOpacity 
@@ -520,7 +508,6 @@ const Admin_Category_Management = ({ navigation }: any) => {
                 </View>
             </Modal>
 
-            {/* Edit Category Modal */}
             <Modal
                 visible={showEditModal}
                 transparent
@@ -551,7 +538,6 @@ const Admin_Category_Management = ({ navigation }: any) => {
                                 keyboardShouldPersistTaps="handled"
                             >
                                 <View style={styles.modalForm}>
-                                    {/* Image Upload */}
                                     <View style={styles.imageSection}>
                                         <Text style={styles.label}>Category Image</Text>
                                         <TouchableOpacity 
@@ -856,7 +842,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         color: '#999',
     },
-    // Modals
+
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',

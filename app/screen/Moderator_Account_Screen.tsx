@@ -17,9 +17,9 @@ import { apiService } from '../service/api_calls';
 interface ModStats {
     pendingProducts: number;
     totalProducts: number;
-    rejectedProducts: number;
     pendingSellers: number;
     totalSellers: number;
+    moderationHistory: number;
 }
 
 const Moderator_Account_Screen = ({ navigation }: any) => {
@@ -29,21 +29,17 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
     const [stats, setStats] = useState<ModStats>({
         pendingProducts: 0,
         totalProducts: 0,
-        rejectedProducts: 0,
         pendingSellers: 0,
-        totalSellers: 0
+        totalSellers: 0,
+        moderationHistory: 0
     });
 
     const canModerateSellers = user?.permissions?.can_moderate_sellers || false;
     const canModerateProducts = user?.permissions?.can_moderate_products || false;
     const canApproveNewSellers = user?.permissions?.can_approve_new_sellers || false;
     const canApproveNewProducts = user?.permissions?.can_approve_new_products || false;
-    const canManageReports = user?.permissions?.can_manage_reports || false;
     const canViewAnalytics = user?.permissions?.can_view_analytics || false;
-    const canManageModerators = user?.permissions?.can_manage_moderators || false;
     const isAdmin = user?.role === 'Admin';
-
-    
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -54,16 +50,47 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
     const fetchModStats = async () => {
         try {
             setLoading(true);
-            // placeholder
+            let pendingProducts = 0;
+            let totalProducts = 0;
+            let pendingSellers = 0;
+            let totalSellers = 0;
+            let moderationHistory = 0;
+
+            if (canApproveNewProducts || isAdmin) {
+                    const pendingProductsData = await apiService.getPendingProducts();
+                    pendingProducts = Array.isArray(pendingProductsData) ? pendingProductsData.length : 0;
+
+            }
+            if (canModerateProducts || isAdmin) {
+                    const allProductsData = await apiService.getAllProductsForModeration();
+                    totalProducts = Array.isArray(allProductsData) ? allProductsData.length : 0;
+
+            }
+            if (canApproveNewSellers || isAdmin) {
+                    const pendingSellersData = await apiService.getPendingSellers();
+                    pendingSellers = Array.isArray(pendingSellersData) ? pendingSellersData.length : 0;
+            }
+            if (canModerateSellers || isAdmin) {
+                    const allSellersData = await apiService.getAllSellersForManagement();
+                    totalSellers = Array.isArray(allSellersData) ? allSellersData.length : 0;
+            }
+            if (canViewAnalytics || isAdmin) {
+                    const historyData = await apiService.getModerationHistory(1, 0);
+
+                    moderationHistory = historyData?.pagination?.total || 0;
+
+            }
+
             setStats({
-                pendingProducts: 5,
-                totalProducts: 120,
-                rejectedProducts: 8,
-                pendingSellers: 3,
-                totalSellers: 15
+                pendingProducts,
+                totalProducts,
+                pendingSellers,
+                totalSellers,
+                moderationHistory
             });
+
         } catch (error) {
-            console.error('Error fetching moderator stats:', error);
+            console.error('❌ Error fetching moderator stats:', error);
         } finally {
             setLoading(false);
         }
@@ -93,12 +120,11 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         );
     };
 
-
     const handlePendingProducts = () => {
         if (!canApproveNewProducts && !isAdmin) {
             Alert.alert(
                 'Access Denied',
-                'You don\'t have permission to approve products.\n\nPlease contact your administrator.'
+                'You don\'t have permission to approve products.'
             );
             return;
         }
@@ -109,7 +135,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         if (!canModerateProducts && !isAdmin) {
             Alert.alert(
                 'Access Denied',
-                'You don\'t have permission to moderate products.\n\nPlease contact your administrator.'
+                'You don\'t have permission to moderate products.'
             );
             return;
         }
@@ -120,7 +146,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         if (!canApproveNewSellers && !isAdmin) {
             Alert.alert(
                 'Access Denied',
-                'You don\'t have permission to approve sellers.\n\nPlease contact your administrator.'
+                'You don\'t have permission to approve sellers.'
             );
             return;
         }
@@ -131,7 +157,7 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         if (!canModerateSellers && !isAdmin) {
             Alert.alert(
                 'Access Denied',
-                'You don\'t have permission to manage sellers.\n\nPlease contact your administrator.'
+                'You don\'t have permission to manage sellers.'
             );
             return;
         }
@@ -142,51 +168,17 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         if (!canViewAnalytics && !isAdmin) {
             Alert.alert(
                 'Access Denied',
-                'You don\'t have permission to view moderation history.\n\nPlease contact your administrator.'
+                'You don\'t have permission to view moderation history.'
             );
             return;
         }
         navigation.navigate('PersonalModerationHistory');
     };
 
-    const handleReports = () => {
-        if (!canManageReports && !isAdmin) {
-            Alert.alert(
-                'Access Denied',
-                'You don\'t have permission to manage reports.\n\nPlease contact your administrator.'
-            );
-            return;
-        }
-        Alert.alert('Reports', 'Reports coming soon!');
-    };
-
-    const handleAnalytics = () => {
-        if (!canViewAnalytics && !isAdmin) {
-            Alert.alert(
-                'Access Denied',
-                'You don\'t have permission to view analytics.\n\nPlease contact your administrator.'
-            );
-            return;
-        }
-        Alert.alert('Analytics', 'Analytics coming soon!');
-    };
-
-    const handleManageModerators = () => {
-        if (!canManageModerators && !isAdmin) {
-            Alert.alert(
-                'Access Denied',
-                'You don\'t have permission to manage moderators.\n\nPlease contact your administrator.'
-            );
-            return;
-        }
-        Alert.alert('Manage Moderators', 'Moderator management coming soon!');
-    };
-
     const handleSettings = () => {
         navigation.navigate('User_Edit_Profile');
     };
 
-    // Get user initials for avatar
     const getUserInitials = () => {
         if (!user?.name) return '?';
         const names = user.name.split(' ');
@@ -217,7 +209,6 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         );
     }
 
-    // Check if user is moderator or admin
     if (user?.role !== 'Moderator' && user?.role !== 'Admin') {
         return (
             <SafeAreaView style={styles.container}>
@@ -243,7 +234,6 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -258,7 +248,6 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
-                {/* Profile Header */}
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: '#6C5CE7' }]}>
@@ -275,102 +264,77 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
                         Member since {user?.registration_date ? new Date(user.registration_date).toLocaleDateString() : 'N/A'}
                     </Text>
                 </View>
-
-                {/* Stats Cards */}
                 <View style={styles.statsGrid}>
-                    <TouchableOpacity 
-                        style={styles.statCard} 
-                        onPress={handlePendingProducts}
-                        disabled={!canModerateProducts && !isAdmin}
-                    >
-                        <View style={[styles.statIcon, { backgroundColor: '#fff3e0' }]}>
-                            <Ionicons name="time-outline" size={24} color={canModerateProducts || isAdmin ? '#FF9F43' : '#ccc'} />
-                        </View>
-                        <Text style={[styles.statNumber, { color: canModerateProducts || isAdmin ? '#333' : '#ccc' }]}>
-                            {stats.pendingProducts}
-                        </Text>
-                        <Text style={[styles.statLabel, { color: canModerateProducts || isAdmin ? '#999' : '#ccc' }]}>
-                            Pending Products
-                        </Text>
-                        {!canModerateProducts && !isAdmin && (
-                            <Text style={styles.lockedLabel}>🔒 Locked</Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={styles.statCard} 
-                        onPress={handleAllProducts}
-                        disabled={!canModerateProducts && !isAdmin}
-                    >
-                        <View style={[styles.statIcon, { backgroundColor: '#e8f5e9' }]}>
-                            <Ionicons name="cube-outline" size={24} color={canModerateProducts || isAdmin ? '#4CAF50' : '#ccc'} />
-                        </View>
-                        <Text style={[styles.statNumber, { color: canModerateProducts || isAdmin ? '#333' : '#ccc' }]}>
-                            {stats.totalProducts}
-                        </Text>
-                        <Text style={[styles.statLabel, { color: canModerateProducts || isAdmin ? '#999' : '#ccc' }]}>
-                            Total Products
-                        </Text>
-                        {!canModerateProducts && !isAdmin && (
-                            <Text style={styles.lockedLabel}>🔒 Locked</Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={styles.statCard} 
-                        onPress={handleModerationHistory}
-                        disabled={!canViewAnalytics && !isAdmin}
-                    >
-                        <View style={[styles.statIcon, { backgroundColor: '#fce4ec' }]}>
-                            <Ionicons name="close-circle" size={24} color={canViewAnalytics || isAdmin ? '#FF6B6B' : '#ccc'} />
-                        </View>
-                        <Text style={[styles.statNumber, { color: canViewAnalytics || isAdmin ? '#333' : '#ccc' }]}>
-                            {stats.rejectedProducts}
-                        </Text>
-                        <Text style={[styles.statLabel, { color: canViewAnalytics || isAdmin ? '#999' : '#ccc' }]}>
-                            Rejected
-                        </Text>
-                        {!canViewAnalytics && !isAdmin && (
-                            <Text style={styles.lockedLabel}>🔒 Locked</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                {/* Seller Stats */}
-                <View style={styles.sellerStats}>
-                    <Text style={styles.sellerStatsTitle}>Seller Management</Text>
-                    <View style={styles.sellerStatsRow}>
+                    <Text style={styles.sectionTitle}>Product Management</Text>
+                    <View style={styles.statsRow}>
                         <TouchableOpacity 
-                            style={styles.sellerStatItem} 
-                            onPress={handlePendingSellers}
+                            style={[styles.statCard, (!canApproveNewProducts && !isAdmin) && styles.statCardDisabled]} 
+                            onPress={handlePendingProducts}
                             disabled={!canApproveNewProducts && !isAdmin}
                         >
-                            <View style={[styles.sellerStatIcon, { backgroundColor: canApproveNewProducts || isAdmin ? '#e3f2fd' : '#f0f0f0' }]}>
-                                <Ionicons name="people-outline" size={22} color={canApproveNewProducts || isAdmin ? '#2196F3' : '#ccc'} />
+                            <View style={[styles.statIcon, { backgroundColor: canApproveNewProducts || isAdmin ? '#fff3e0' : '#f5f5f5' }]}>
+                                <Ionicons name="hourglass-outline" size={24} color={canApproveNewProducts || isAdmin ? '#FF9F43' : '#ccc'} />
+                            </View>
+                            <Text style={[styles.statNumber, (!canApproveNewProducts && !isAdmin) && styles.statNumberDisabled]}>
+                                {canApproveNewProducts || isAdmin ? stats.pendingProducts : '🔒'}
+                            </Text>
+                            <Text style={[styles.statLabel, (!canApproveNewProducts && !isAdmin) && styles.statLabelDisabled]}>
+                                Pending Products
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.statCard, (!canModerateProducts && !isAdmin) && styles.statCardDisabled]} 
+                            onPress={handleAllProducts}
+                            disabled={!canModerateProducts && !isAdmin}
+                        >
+                            <View style={[styles.statIcon, { backgroundColor: canModerateProducts || isAdmin ? '#e8f5e9' : '#f5f5f5' }]}>
+                                <Ionicons name="grid-outline" size={24} color={canModerateProducts || isAdmin ? '#4CAF50' : '#ccc'} />
+                            </View>
+                            <Text style={[styles.statNumber, (!canModerateProducts && !isAdmin) && styles.statNumberDisabled]}>
+                                {canModerateProducts || isAdmin ? stats.totalProducts : '🔒'}
+                            </Text>
+                            <Text style={[styles.statLabel, (!canModerateProducts && !isAdmin) && styles.statLabelDisabled]}>
+                                Total Products
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.sellerStats}>
+                    <Text style={styles.sectionTitle}>Seller Management</Text>
+                    <View style={styles.sellerStatsRow}>
+                        <TouchableOpacity 
+                            style={[styles.sellerStatItem, (!canApproveNewSellers && !isAdmin) && styles.sellerStatItemDisabled]} 
+                            onPress={handlePendingSellers}
+                            disabled={!canApproveNewSellers && !isAdmin}
+                        >
+                            <View style={[styles.sellerStatIcon, { backgroundColor: canApproveNewSellers || isAdmin ? '#e3f2fd' : '#f5f5f5' }]}>
+                                <Ionicons name="person-add-outline" size={22} color={canApproveNewSellers || isAdmin ? '#2196F3' : '#ccc'} />
                             </View>
                             <View>
-                                <Text style={[styles.sellerStatNumber, { color: canApproveNewProducts || isAdmin ? '#333' : '#ccc' }]}>
-                                    {stats.pendingSellers}
+                                <Text style={[styles.sellerStatNumber, (!canApproveNewSellers && !isAdmin) && styles.sellerStatNumberDisabled]}>
+                                    {canApproveNewSellers || isAdmin ? stats.pendingSellers : '🔒'}
                                 </Text>
-                                <Text style={[styles.sellerStatLabel, { color: canApproveNewProducts || isAdmin ? '#999' : '#ccc' }]}>
+                                <Text style={[styles.sellerStatLabel, (!canApproveNewSellers && !isAdmin) && styles.sellerStatLabelDisabled]}>
                                     Pending Sellers
                                 </Text>
                             </View>
                         </TouchableOpacity>
                         
                         <TouchableOpacity 
-                            style={styles.sellerStatItem} 
+                            style={[styles.sellerStatItem, (!canModerateSellers && !isAdmin) && styles.sellerStatItemDisabled]} 
                             onPress={handleAllSellers}
                             disabled={!canModerateSellers && !isAdmin}
                         >
-                            <View style={[styles.sellerStatIcon, { backgroundColor: canModerateSellers || isAdmin ? '#e8f5e9' : '#f0f0f0' }]}>
-                                <Ionicons name="storefront" size={22} color={canModerateSellers || isAdmin ? '#4CAF50' : '#ccc'} />
+                            <View style={[styles.sellerStatIcon, { backgroundColor: canModerateSellers || isAdmin ? '#e8f5e9' : '#f5f5f5' }]}>
+                                <Ionicons name="people-outline" size={22} color={canModerateSellers || isAdmin ? '#4CAF50' : '#ccc'} />
                             </View>
                             <View>
-                                <Text style={[styles.sellerStatNumber, { color: canModerateSellers || isAdmin ? '#333' : '#ccc' }]}>
-                                    {stats.totalSellers}
+                                <Text style={[styles.sellerStatNumber, (!canModerateSellers && !isAdmin) && styles.sellerStatNumberDisabled]}>
+                                    {canModerateSellers || isAdmin ? stats.totalSellers : '🔒'}
                                 </Text>
-                                <Text style={[styles.sellerStatLabel, { color: canModerateSellers || isAdmin ? '#999' : '#ccc' }]}>
+                                <Text style={[styles.sellerStatLabel, (!canModerateSellers && !isAdmin) && styles.sellerStatLabelDisabled]}>
                                     Total Sellers
                                 </Text>
                             </View>
@@ -378,155 +342,115 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
                     </View>
                 </View>
 
-                {/* Menu */}
                 <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Moderation Tools</Text>
 
-                    {/* Products Section */}
                     <TouchableOpacity 
-                        style={[styles.menuItem, !canModerateProducts && !isAdmin && styles.menuItemDisabled]} 
+                        style={[styles.menuItem, (!canApproveNewProducts && !isAdmin) && styles.menuItemDisabled]} 
                         onPress={handlePendingProducts}
-                        disabled={!canModerateProducts && !isAdmin}
+                        disabled={!canApproveNewProducts && !isAdmin}
                     >
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
-                                <Ionicons name="time-outline" size={22} color={canModerateProducts || isAdmin ? '#FF9F43' : '#ccc'} />
+                            <View style={[styles.menuIcon, { backgroundColor: canApproveNewProducts || isAdmin ? '#fff3e0' : '#f5f5f5' }]}>
+                                <Ionicons name="hourglass-outline" size={22} color={canApproveNewProducts || isAdmin ? '#FF9F43' : '#ccc'} />
                             </View>
-                            <Text style={[styles.menuText, !canModerateProducts && !isAdmin && styles.menuTextDisabled]}>
+                            <Text style={[styles.menuText, (!canApproveNewProducts && !isAdmin) && styles.menuTextDisabled]}>
                                 Pending Products
                             </Text>
                         </View>
                         <View style={styles.menuRight}>
-                            {canModerateProducts && stats.pendingProducts > 0 && (
+                            {(canApproveNewProducts || isAdmin) && stats.pendingProducts > 0 && (
                                 <Text style={styles.menuBadge}>{stats.pendingProducts}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color={canApproveNewProducts || isAdmin ? '#ccc' : '#e0e0e0'} />
+                        </View>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={[styles.menuItem, (!canModerateProducts && !isAdmin) && styles.menuItemDisabled]} 
+                        onPress={handleAllProducts}
+                        disabled={!canModerateProducts && !isAdmin}
+                    >
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: canModerateProducts || isAdmin ? '#e8f5e9' : '#f5f5f5' }]}>
+                                <Ionicons name="grid-outline" size={22} color={canModerateProducts || isAdmin ? '#4CAF50' : '#ccc'} />
+                            </View>
+                            <Text style={[styles.menuText, (!canModerateProducts && !isAdmin) && styles.menuTextDisabled]}>
+                                All Products
+                            </Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {(canModerateProducts || isAdmin) && stats.totalProducts > 0 && (
+                                <Text style={styles.menuBadge}>{stats.totalProducts}</Text>
                             )}
                             <Ionicons name="chevron-forward" size={20} color={canModerateProducts || isAdmin ? '#ccc' : '#e0e0e0'} />
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
-                        style={[styles.menuItem, !canModerateProducts && !isAdmin && styles.menuItemDisabled]} 
-                        onPress={handleAllProducts}
-                        disabled={!canModerateProducts && !isAdmin}
-                    >
-                        <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
-                                <Ionicons name="cube-outline" size={22} color={canModerateProducts || isAdmin ? '#4CAF50' : '#ccc'} />
-                            </View>
-                            <Text style={[styles.menuText, !canModerateProducts && !isAdmin && styles.menuTextDisabled]}>
-                                All Products
-                            </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={canModerateProducts || isAdmin ? '#ccc' : '#e0e0e0'} />
-                    </TouchableOpacity>
-
-                    {/* Sellers Section */}
-                    <TouchableOpacity 
-                        style={[styles.menuItem, !canApproveNewProducts && !isAdmin && styles.menuItemDisabled]} 
+                        style={[styles.menuItem, (!canApproveNewSellers && !isAdmin) && styles.menuItemDisabled]} 
                         onPress={handlePendingSellers}
-                        disabled={!canApproveNewProducts && !isAdmin}
+                        disabled={!canApproveNewSellers && !isAdmin}
                     >
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
-                                <Ionicons name="people-outline" size={22} color={canApproveNewProducts || isAdmin ? '#2196F3' : '#ccc'} />
+                            <View style={[styles.menuIcon, { backgroundColor: canApproveNewSellers || isAdmin ? '#e3f2fd' : '#f5f5f5' }]}>
+                                <Ionicons name="person-add-outline" size={22} color={canApproveNewSellers || isAdmin ? '#2196F3' : '#ccc'} />
                             </View>
-                            <Text style={[styles.menuText, !canApproveNewProducts && !isAdmin && styles.menuTextDisabled]}>
+                            <Text style={[styles.menuText, (!canApproveNewSellers && !isAdmin) && styles.menuTextDisabled]}>
                                 Pending Sellers
                             </Text>
                         </View>
                         <View style={styles.menuRight}>
-                            {canApproveNewProducts && stats.pendingSellers > 0 && (
+                            {(canApproveNewSellers || isAdmin) && stats.pendingSellers > 0 && (
                                 <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{stats.pendingSellers}</Text>
                             )}
-                            <Ionicons name="chevron-forward" size={20} color={canApproveNewProducts || isAdmin ? '#ccc' : '#e0e0e0'} />
+                            <Ionicons name="chevron-forward" size={20} color={canApproveNewSellers || isAdmin ? '#ccc' : '#e0e0e0'} />
                         </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
-                        style={[styles.menuItem, !canModerateSellers && !isAdmin && styles.menuItemDisabled]} 
+                        style={[styles.menuItem, (!canModerateSellers && !isAdmin) && styles.menuItemDisabled]} 
                         onPress={handleAllSellers}
                         disabled={!canModerateSellers && !isAdmin}
                     >
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
+                            <View style={[styles.menuIcon, { backgroundColor: canModerateSellers || isAdmin ? '#fce4ec' : '#f5f5f5' }]}>
                                 <Ionicons name="people-outline" size={22} color={canModerateSellers || isAdmin ? '#FF6B6B' : '#ccc'} />
                             </View>
-                            <Text style={[styles.menuText, !canModerateSellers && !isAdmin && styles.menuTextDisabled]}>
+                            <Text style={[styles.menuText, (!canModerateSellers && !isAdmin) && styles.menuTextDisabled]}>
                                 Manage Sellers
                             </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color={canModerateSellers || isAdmin ? '#ccc' : '#e0e0e0'} />
-                    </TouchableOpacity>
-
-                    {/* Reports Section */}
-                    <TouchableOpacity 
-                        style={[styles.menuItem, !canManageReports && !isAdmin && styles.menuItemDisabled]} 
-                        onPress={handleReports}
-                        disabled={!canManageReports && !isAdmin}
-                    >
-                        <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
-                                <Ionicons name="flag-outline" size={22} color={canManageReports || isAdmin ? '#FF9800' : '#ccc'} />
-                            </View>
-                            <Text style={[styles.menuText, !canManageReports && !isAdmin && styles.menuTextDisabled]}>
-                                Reports & Flags
-                            </Text>
+                        <View style={styles.menuRight}>
+                            {(canModerateSellers || isAdmin) && stats.totalSellers > 0 && (
+                                <Text style={styles.menuBadge}>{stats.totalSellers}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color={canModerateSellers || isAdmin ? '#ccc' : '#e0e0e0'} />
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color={canManageReports || isAdmin ? '#ccc' : '#e0e0e0'} />
                     </TouchableOpacity>
 
-                    {/* Analytics Section */}
                     <TouchableOpacity 
-                        style={[styles.menuItem, !canViewAnalytics && !isAdmin && styles.menuItemDisabled]} 
-                        onPress={handleAnalytics}
-                        disabled={!canViewAnalytics && !isAdmin}
-                    >
-                        <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
-                                <Ionicons name="bar-chart-outline" size={22} color={canViewAnalytics || isAdmin ? '#9C27B0' : '#ccc'} />
-                            </View>
-                            <Text style={[styles.menuText, !canViewAnalytics && !isAdmin && styles.menuTextDisabled]}>
-                                Analytics
-                            </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={canViewAnalytics || isAdmin ? '#ccc' : '#e0e0e0'} />
-                    </TouchableOpacity>
-
-                    {/* Moderation History */}
-                    <TouchableOpacity 
-                        style={[styles.menuItem, !canViewAnalytics && !isAdmin && styles.menuItemDisabled]} 
+                        style={[styles.menuItem, (!canViewAnalytics && !isAdmin) && styles.menuItemDisabled]} 
                         onPress={handleModerationHistory}
                         disabled={!canViewAnalytics && !isAdmin}
                     >
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
-                                <Ionicons name="list-outline" size={22} color={canViewAnalytics || isAdmin ? '#FF6B6B' : '#ccc'} />
+                            <View style={[styles.menuIcon, { backgroundColor: canViewAnalytics || isAdmin ? '#f3e5f5' : '#f5f5f5' }]}>
+                                <Ionicons name="document-text-outline" size={22} color={canViewAnalytics || isAdmin ? '#9C27B0' : '#ccc'} />
                             </View>
-                            <Text style={[styles.menuText, !canViewAnalytics && !isAdmin && styles.menuTextDisabled]}>
+                            <Text style={[styles.menuText, (!canViewAnalytics && !isAdmin) && styles.menuTextDisabled]}>
                                 Moderation History
                             </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color={canViewAnalytics || isAdmin ? '#ccc' : '#e0e0e0'} />
+                        <View style={styles.menuRight}>
+                            {(canViewAnalytics || isAdmin) && stats.moderationHistory > 0 && (
+                                <Text style={styles.menuBadge}>{stats.moderationHistory}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color={canViewAnalytics || isAdmin ? '#ccc' : '#e0e0e0'} />
+                        </View>
                     </TouchableOpacity>
-
-                    {/* Admin Only: Manage Moderators */}
-                    {user?.role === 'Admin' && (
-                        <TouchableOpacity 
-                            style={styles.menuItem} 
-                            onPress={handleManageModerators}
-                        >
-                            <View style={styles.menuLeft}>
-                                <View style={[styles.menuIcon, { backgroundColor: '#e8f5e9' }]}>
-                                    <Ionicons name="shield-outline" size={22} color="#4CAF50" />
-                                </View>
-                                <Text style={styles.menuText}>Manage Moderators</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                        </TouchableOpacity>
-                    )}
                 </View>
 
-                {/* Account Settings */}
                 <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Account Settings</Text>
 
@@ -551,7 +475,6 @@ const Moderator_Account_Screen = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={22} color="#FF6B6B" />
                     <Text style={styles.logoutButtonText}>Logout</Text>
@@ -588,7 +511,6 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
-    // Not logged in
     notLoggedInContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -619,7 +541,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Profile Header
     profileHeader: {
         backgroundColor: '#fff',
         alignItems: 'center',
@@ -675,37 +596,32 @@ const styles = StyleSheet.create({
         color: '#999',
         marginTop: 4,
     },
-    permissionBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#e3f2fd',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        marginTop: 6,
+
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+        paddingHorizontal: 4,
     },
-    adminBadge: {
-        backgroundColor: '#fff8e1',
-    },
-    permissionBadgeText: {
-        fontSize: 11,
-        color: '#3498DB',
-        marginLeft: 4,
-        fontWeight: '500',
-    },
-    // Stats
+
     statsGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingVertical: 16,
         backgroundColor: '#fff',
+        padding: 16,
         marginTop: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
     },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+    },
     statCard: {
         alignItems: 'center',
         flex: 1,
+    },
+    statCardDisabled: {
+        opacity: 0.5,
     },
     statIcon: {
         width: 44,
@@ -720,29 +636,24 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#333',
     },
+    statNumberDisabled: {
+        color: '#ccc',
+    },
     statLabel: {
         fontSize: 11,
         color: '#999',
         textAlign: 'center',
     },
-    lockedLabel: {
-        fontSize: 9,
+    statLabelDisabled: {
         color: '#ccc',
-        marginTop: 2,
     },
-    // Seller Stats
+
     sellerStats: {
         backgroundColor: '#fff',
         padding: 16,
         marginTop: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#f0f0f0',
-    },
-    sellerStatsTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 12,
     },
     sellerStatsRow: {
         flexDirection: 'row',
@@ -753,6 +664,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
         paddingVertical: 8,
+    },
+    sellerStatItemDisabled: {
+        opacity: 0.5,
     },
     sellerStatIcon: {
         width: 40,
@@ -767,11 +681,17 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#333',
     },
+    sellerStatNumberDisabled: {
+        color: '#ccc',
+    },
     sellerStatLabel: {
         fontSize: 12,
         color: '#999',
     },
-    // Menu
+    sellerStatLabelDisabled: {
+        color: '#ccc',
+    },
+
     menuContainer: {
         backgroundColor: '#fff',
         marginTop: 8,

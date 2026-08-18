@@ -3,7 +3,6 @@ import StorageService from './StorageService';
 const API_URL = `http://192.168.0.100/Thrift_Shop_api/api`;
 const AUTH_URL = `http://192.168.0.100/Thrift_Shop_api/auth`;
 
-// Types
 export interface Category {
   id: number;
   name: string;
@@ -58,7 +57,7 @@ export interface ProductWithCategory extends Product {
   categoryName?: string;
 }
 
-// API Service
+// ==== API Service ====
 class ApiService {
   private async request<T>(
     endpoint: string, 
@@ -73,8 +72,6 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers,
       };
-
-      // Add auth token if required
       if (requireAuth) {
         const token = await StorageService.getToken();
         if (token) {
@@ -92,7 +89,6 @@ class ApiService {
 
       console.log('Response status:', response.status);
 
-      // Handle 401 issues
       if (response.status === 401) {
         console.log('Session expired');
         await StorageService.clearAll();
@@ -192,7 +188,6 @@ async getCurrentUser(): Promise<any | null> {
         }, true);
 
         if (response && response.valid && response.user) {
-            // Ensure permissions exist with defaults
             const userWithPermissions = {
                 ...response.user,
                 permissions: response.user.permissions || {
@@ -336,7 +331,7 @@ async getCurrentUser(): Promise<any | null> {
           const response = await this.request<any>('/seller_apply.php', {}, true);
           return {
               hasApplied: response.hasApplied || false,
-              status: response.status || null,  // 'pending', 'approved', 'rejected', 'suspended'
+              status: response.status || null,
               canEdit: response.canEdit || false,
               profile: response.profile || null,
               message: response.message || ''
@@ -449,13 +444,10 @@ async getCurrentUser(): Promise<any | null> {
 
   async clearCart(): Promise<any> {
       try {
-          // Get all items first
           const cart = await this.getCart();
           if (!cart.items || cart.items.length === 0) {
               return { success: true, message: 'Cart is already empty' };
           }
-          
-          // Remove each item
           for (const item of cart.items) {
               await this.removeFromCart(item.cartItemID);
           }
@@ -482,7 +474,6 @@ async getCurrentUser(): Promise<any | null> {
 
   async createProduct(productData: any): Promise<any> {  
     try {
-        // Make sure the image is included properly
         const formData = {
             name: productData.name,
             description: productData.description,
@@ -490,7 +481,7 @@ async getCurrentUser(): Promise<any | null> {
             condition: productData.condition,
             price: productData.price,
             quantity: productData.quantity,
-            image: productData.image  // Base64 image
+            image: productData.image 
         };
 
         const response = await this.request<any>('/sell_product.php', {
@@ -785,26 +776,25 @@ async getCurrentUser(): Promise<any | null> {
       }
   }
 
-  // ========== MODERATION HISTORY ==========
+    // ========== MODERATION HISTORY ==========
 
-  async getModerationHistory(limit: number = 50, offset: number = 0, action?: string, category?: string): Promise<any> {
-      try {
-          let endpoint = `/moderation_history.php?limit=${limit}&offset=${offset}`;
-          if (action) {
-              endpoint += `&action=${action}`;
-          }
-          if (category) {
-              endpoint += `&category=${category}`;
-          }
-          console.log('Fetching moderation history:', endpoint);
-          const response = await this.request<any>(endpoint, {}, true);
-          return response;
-      } catch (error) {
-          console.error('Error fetching moderation history:', error);
-          // Return empty data instead of throwing
-          return { success: false, data: [], pagination: { total: 0 } };
-      }
-  }
+    async getModerationHistory(limit: number = 50, offset: number = 0, action?: string, category?: string): Promise<any> {
+        try {
+            let endpoint = `/moderation_history.php?limit=${limit}&offset=${offset}`;
+            if (action) {
+                endpoint += `&action=${action}`;
+            }
+            if (category) {
+                endpoint += `&category=${category}`;
+            }
+            console.log('Fetching personal moderation history:', endpoint);
+            const response = await this.request<any>(endpoint, {}, true);
+            return response;
+        } catch (error) {
+            console.error('Error fetching moderation history:', error);
+            return { success: false, data: [], pagination: { total: 0 } };
+        }
+    }
 
     async getAllModerationHistory(fromDate?: string, toDate?: string): Promise<any> {
         try {
@@ -815,13 +805,14 @@ async getCurrentUser(): Promise<any | null> {
             if (params.toString()) {
                 endpoint += `?${params.toString()}`;
             }
-            return await this.request<any>(endpoint, {}, true);
+            console.log('Fetching ALL moderation history:', endpoint);
+            const response = await this.request<any>(endpoint, {}, true);
+            return response;
         } catch (error) {
             console.error('Error fetching all moderation history:', error);
             return { success: false, data: [] };
         }
     }
-
 
   // ========== ADMIN - USER MANAGEMENT ==========
 

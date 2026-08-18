@@ -21,25 +21,35 @@ const Seller_Account_Screen = ({ navigation }: any) => {
     const [refreshing, setRefreshing] = useState(false);
     const [sellerProfile, setSellerProfile] = useState<any>(null);
     const [sellerStatus, setSellerStatus] = useState<string | null>(null);
-    const [isSuspended, setIsSuspended] = useState(false);  
+    const [isSuspended, setIsSuspended] = useState(false);
+    const [wishlistCount, setWishlistCount] = useState(0);
+    const [cartCount, setCartCount] = useState(0);
+    const [buyerOrderStats, setBuyerOrderStats] = useState({pending: 0,total: 0});
     const [stats, setStats] = useState({
         totalProducts: 0,
         totalOrders: 0,
-        totalSales: 0,
+        totalRevenue: 0,
         totalReviews: 0,
-        pendingOrders: 0
+        pendingOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+        totalItemsSold: 0
     });
+    const [ordersData, setOrdersData] = useState<any[]>([]);
 
     useEffect(() => {
         if (isAuthenticated && user?.role === 'Seller') {
             fetchSellerData();
+            fetchWishlistCount();
+            fetchCartCount();
+            fetchBuyerOrders();
         }
     }, [isAuthenticated]);
 
     const fetchSellerData = async () => {
         try {
             setLoading(true);
-            // Fetch seller profile
+            
             const profile = await apiService.checkSellerStatus();
             if (profile.hasApplied) {
                 setSellerStatus(profile.status);
@@ -48,26 +58,122 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     setSellerProfile(profile.profile);
                 }
             }
-
-            // Fetch seller stats
             const productsData = await apiService.getMyProducts();
+            const activeProducts = productsData.filter(p => p.is_deleted !== 1);
+
+            const salesResponse = await apiService.getSellerOrders();
+            let orders = [];
+            let orderStats = {
+                totalOrders: 0,
+                pendingOrders: 0,
+                completedOrders: 0,
+                cancelledOrders: 0,
+                totalRevenue: 0,
+                totalItemsSold: 0
+            };
+
+            if (salesResponse && salesResponse.success) {
+                orders = (salesResponse.data || []).map((order: any) => ({
+                    orderID: order.orderID,
+                    orderStatus: order.orderStatus,
+                    totalPrice: order.totalPrice,
+                    orderDate: order.orderDate,
+                    buyerName: order.buyer_name || 'Unknown',
+                    buyerEmail: order.buyer_email || '',
+                    shipping_name: order.shipping_name,
+                    shipping_address: order.shipping_address,
+                    shipping_city: order.shipping_city,
+                    shipping_postal_code: order.shipping_postal_code,
+                    items: (order.items || []).map((item: any) => ({
+                        orderItemID: item.orderItemID,
+                        productID: item.productID,
+                        productName: item.product_name || 'Product',
+                        quantity: item.quantity || 0,
+                        price_at_purchase: item.price_at_purchase || 0,
+                        image_path: item.image_path
+                    }))
+                }));
+                
+                orderStats.totalOrders = orders.length;
+                
+                orders.forEach((order: any) => {
+                    switch (order.orderStatus) {
+                        case 'Pending':
+                            orderStats.pendingOrders++;
+                            break;
+                        case 'Completed':
+                            orderStats.completedOrders++;
+                            orderStats.totalRevenue += parseFloat(order.totalPrice || 0);
+                            if (order.items) {
+                                order.items.forEach((item: any) => {
+                                    orderStats.totalItemsSold += item.quantity || 0;
+                                });
+                            }
+                            break;
+                        case 'Cancelled':
+                            orderStats.cancelledOrders++;
+                            break;
+                    }
+                });
+            }
+
             setStats({
-                totalProducts: productsData.length || 12,
-                totalOrders: 45,
-                totalSales: 7890,
-                totalReviews: 23,
-                pendingOrders: productsData.filter(p => p.status === 'pending').length || 3
+                totalProducts: activeProducts.length,
+                totalOrders: orderStats.totalOrders,
+                totalRevenue: orderStats.totalRevenue,
+                totalReviews: 0,
+                pendingOrders: orderStats.pendingOrders,
+                completedOrders: orderStats.completedOrders,
+                cancelledOrders: orderStats.cancelledOrders,
+                totalItemsSold: orderStats.totalItemsSold
             });
+
+            setOrdersData(orders);
+
         } catch (error) {
             console.error('Error fetching seller data:', error);
+            setStats({
+                totalProducts: 0,
+                totalOrders: 0,
+                totalRevenue: 0,
+                totalReviews: 0,
+                pendingOrders: 0,
+                completedOrders: 0,
+                cancelledOrders: 0,
+                totalItemsSold: 0
+            });
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchWishlistCount = async () => {
+        try {
+            const wishlist = await apiService.getWishlist();
+            setWishlistCount(Array.isArray(wishlist) ? wishlist.length : 0);
+        } catch (error) {
+            console.error('Error fetching wishlist count:', error);
+            setWishlistCount(0);
+        }
+    };
+
+    const fetchCartCount = async () => {
+        try {
+            const cart = await apiService.getCart();
+            setCartCount(cart.totalItems || 0);
+        } catch (error) {
+            console.error('Error fetching cart count:', error);
+            setCartCount(0);
+        }
+    };
+
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchSellerData();
+        await Promise.all([
+            fetchSellerData(),
+            fetchWishlistCount(),
+            fetchCartCount()
+        ]);
         setRefreshing(false);
     };
 
@@ -94,7 +200,7 @@ const Seller_Account_Screen = ({ navigation }: any) => {
     };
 
     const handleEditProfile = () => {
-        navigation.navigate('User_Edit_Profile'); 
+        navigation.navigate('User_Edit_Profile');
     };
 
     const handleChangePassword = () => {
@@ -113,7 +219,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('SellerSales');
     };
 
-
     const handleMyWishlist = () => {
         navigation.navigate('Wishlist');
     };
@@ -122,15 +227,45 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('SellerMyProducts');
     };
 
+    const handleMyCart = () => {
+        navigation.navigate('Cart');
+    };
+
+    const fetchBuyerOrders = async () => {
+            try {
+                const response = await apiService.getMyOrders();
+                if (response && response.success) {
+                    const orders = response.data || [];
+                    const pending = orders.filter((o: any) => o.orderStatus === 'Pending').length;
+                    setBuyerOrderStats({
+                        total: orders.length,
+                        pending: pending
+                    });
+                } else {
+                    setBuyerOrderStats({ total: 0, pending: 0 });
+                }
+            } catch (error) {
+                console.error('Error fetching buyer orders:', error);
+                setBuyerOrderStats({ total: 0, pending: 0 });
+            }
+        };
+
+
     const handleSalesAnalytics = () => {
-        Alert.alert('Sales Analytics', 'Analytics dashboard coming soon!');
+        Alert.alert(
+            'Sales Analytics',
+            `Your Sales Summary\n\n` +
+            `Total Orders: ${stats.totalOrders}\n` +
+            `Completed: ${stats.completedOrders}\n` +
+            `Pending: ${stats.pendingOrders}\n` +
+            `Cancelled: ${stats.cancelledOrders}\n\n` +
+            `Total Revenue: $${stats.totalRevenue.toFixed(2)}\n` +
+            `Items Sold: ${stats.totalItemsSold}\n` +
+            `Products Listed: ${stats.totalProducts}`,
+            [{ text: 'OK' }]
+        );
     };
 
-    const handleStoreSettings = () => {
-        Alert.alert('Store Settings', 'Store settings coming soon!');
-    };
-
-    // Get user initials for avatar
     const getUserInitials = () => {
         if (!user?.name) return '?';
         const names = user.name.split(' ');
@@ -140,7 +275,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         return user.name.substring(0, 2).toUpperCase();
     };
 
-    // Format currency
     const formatCurrency = (amount: number) => {
         return `$${amount.toFixed(2)}`;
     };
@@ -170,7 +304,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
                     <Ionicons name="arrow-back" size={28} color="#333" />
@@ -185,7 +318,7 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
-                {/* Profile Header */}
+
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: '#4CAF50' }]}>
@@ -233,54 +366,75 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     )}
                 </View>
 
-                {/* Stats Cards */}
                 <View style={styles.statsContainer}>
-                    <View style={styles.statCard}>
+                    <TouchableOpacity 
+                        style={styles.statCard} 
+                        onPress={handleMyProducts}
+                        activeOpacity={0.7}
+                    >
                         <View style={[styles.statIconContainer, { backgroundColor: '#e8f5e9' }]}>
                             <Ionicons name="cube-outline" size={22} color="#4CAF50" />
                         </View>
                         <Text style={styles.statNumber}>{stats.totalProducts}</Text>
                         <Text style={styles.statLabel}>Products</Text>
-                    </View>
+                    </TouchableOpacity>
 
-                    <View style={styles.statCard}>
+                    <TouchableOpacity 
+                        style={styles.statCard} 
+                        onPress={handleSales}
+                        activeOpacity={0.7}
+                    >
                         <View style={[styles.statIconContainer, { backgroundColor: '#e3f2fd' }]}>
                             <Ionicons name="receipt-outline" size={22} color="#2196F3" />
                         </View>
                         <Text style={styles.statNumber}>{stats.totalOrders}</Text>
                         <Text style={styles.statLabel}>Orders</Text>
-                    </View>
+                    </TouchableOpacity>
 
-                    <View style={styles.statCard}>
+                    <TouchableOpacity 
+                        style={styles.statCard} 
+                        onPress={handleSalesAnalytics}
+                        activeOpacity={0.7}
+                    >
                         <View style={[styles.statIconContainer, { backgroundColor: '#fff3e0' }]}>
                             <Ionicons name="cash-outline" size={22} color="#FF9800" />
                         </View>
-                        <Text style={styles.statNumber}>{formatCurrency(stats.totalSales)}</Text>
-                        <Text style={styles.statLabel}>Sales</Text>
-                    </View>
+                        <Text style={styles.statNumber}>{formatCurrency(stats.totalRevenue)}</Text>
+                        <Text style={styles.statLabel}>Revenue</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Quick Stats Row */}
                 <View style={styles.quickStatsContainer}>
-                    <View style={styles.quickStatItem}>
-                        <Text style={styles.quickStatNumber}>{stats.pendingOrders}</Text>
+                    <TouchableOpacity 
+                        style={styles.quickStatItem}
+                        onPress={() => navigation.navigate('SellerSales', { filter: 'pending' })}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.quickStatIconWrapper}>
+                            <Ionicons name="time-outline" size={18} color="#FF9800" />
+                            <Text style={styles.quickStatNumber}>{stats.pendingOrders}</Text>
+                        </View>
                         <Text style={styles.quickStatLabel}>Pending Orders</Text>
-                    </View>
+                    </TouchableOpacity>
+                    
                     <View style={styles.quickStatDivider} />
-                    <View style={styles.quickStatItem}>
-                        <Text style={styles.quickStatNumber}>{stats.totalReviews}</Text>
-                        <Text style={styles.quickStatLabel}>Reviews</Text>
-                    </View>
+                    
+                    <TouchableOpacity 
+                        style={styles.quickStatItem}
+                        onPress={handleSales}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.quickStatIconWrapper}>
+                            <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
+                            <Text style={styles.quickStatNumber}>{stats.completedOrders}</Text>
+                        </View>
+                        <Text style={styles.quickStatLabel}>Sales Completed</Text>
+                    </TouchableOpacity>
+                    
                     <View style={styles.quickStatDivider} />
-                    <View style={styles.quickStatItem}>
-                        <Text style={styles.quickStatNumber}>
-                            {stats.totalProducts > 0 ? Math.round((stats.totalOrders / stats.totalProducts) * 10) / 10 : 0}
-                        </Text>
-                        <Text style={styles.quickStatLabel}>Avg Sales/Product</Text>
-                    </View>
+                    
                 </View>
 
-                {/* Seller Menu - Conditional based on suspension */}
                 <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Seller Tools</Text>
 
@@ -295,21 +449,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                                 </View>
                                 <View style={styles.menuRight}>
                                     <Text style={styles.menuBadge}>{stats.totalProducts}</Text>
-                                    <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                                </View>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.menuItem} onPress={handleMyOrders}>
-                                <View style={styles.menuLeft}>
-                                    <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
-                                        <Ionicons name="receipt-outline" size={22} color="#2196F3" />
-                                    </View>
-                                    <Text style={styles.menuText}>My Orders</Text>
-                                </View>
-                                <View style={styles.menuRight}>
-                                    {stats.pendingOrders > 0 && (
-                                        <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{stats.pendingOrders}</Text>
-                                    )}
                                     <Ionicons name="chevron-forward" size={20} color="#ccc" />
                                 </View>
                             </TouchableOpacity>
@@ -329,32 +468,12 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                                 </View>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.menuItem} onPress={handleMyWishlist}>
-                                <View style={styles.menuLeft}>
-                                    <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
-                                        <Ionicons name="heart-outline" size={22} color="#FF6B6B" />
-                                    </View>
-                                    <Text style={styles.menuText}>My Wishlist</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                            </TouchableOpacity>
-
                             <TouchableOpacity style={styles.menuItem} onPress={handleSalesAnalytics}>
                                 <View style={styles.menuLeft}>
                                     <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
                                         <Ionicons name="bar-chart-outline" size={22} color="#FF9800" />
                                     </View>
                                     <Text style={styles.menuText}>Sales Analytics</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.menuItem} onPress={handleStoreSettings}>
-                                <View style={styles.menuLeft}>
-                                    <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
-                                        <Ionicons name="settings-outline" size={22} color="#9C27B0" />
-                                    </View>
-                                    <Text style={styles.menuText}>Store Settings</Text>
                                 </View>
                                 <Ionicons name="chevron-forward" size={20} color="#ccc" />
                             </TouchableOpacity>
@@ -369,7 +488,58 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     )}
                 </View>
 
-                {/* Account Settings */}
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>Buyer Tools</Text>
+
+<                   TouchableOpacity style={styles.menuItem} onPress={handleMyOrders}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="receipt-outline" size={22} color="#2196F3" />
+                            </View>
+                            <Text style={styles.menuText}>My Orders</Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {buyerOrderStats.pending > 0 && (
+                                <Text style={[styles.menuBadge, styles.menuBadgeWarning]}>{buyerOrderStats.pending}</Text>
+                            )}
+                            {buyerOrderStats.total > 0 && (
+                                <Text style={styles.menuBadge}>{buyerOrderStats.total}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleMyWishlist}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fce4ec' }]}>
+                                <Ionicons name="heart-outline" size={22} color="#FF6B6B" />
+                            </View>
+                            <Text style={styles.menuText}>My Wishlist</Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {wishlistCount > 0 && (
+                                <Text style={styles.menuBadge}>{wishlistCount}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleMyCart}>
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.menuIcon, { backgroundColor: '#fff3e0' }]}>
+                                <Ionicons name="cart-outline" size={22} color="#FF9800" />
+                            </View>
+                            <Text style={styles.menuText}>My Cart</Text>
+                        </View>
+                        <View style={styles.menuRight}>
+                            {cartCount > 0 && (
+                                <Text style={styles.menuBadge}>{cartCount}</Text>
+                            )}
+                            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                        </View>
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.menuContainer}>
                     <Text style={styles.menuTitle}>Account Settings</Text>
 
@@ -395,8 +565,8 @@ const Seller_Account_Screen = ({ navigation }: any) => {
 
                     <TouchableOpacity style={styles.menuItem} onPress={handleEditBusiness}>
                         <View style={styles.menuLeft}>
-                            <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
-                                <Ionicons name="storefront-outline" size={22} color="#2196F3" />
+                            <View style={[styles.menuIcon, { backgroundColor: '#f3e5f5' }]}>
+                                <Ionicons name="storefront-outline" size={22} color="#9C27B0" />
                             </View>
                             <Text style={styles.menuText}>Edit Business Profile</Text>
                         </View>
@@ -414,7 +584,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={22} color="#FF6B6B" />
                     <Text style={styles.logoutButtonText}>Logout</Text>
@@ -451,7 +620,6 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
     },
-    // Not logged in
     notLoggedInContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -482,7 +650,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Profile Header
     profileHeader: {
         backgroundColor: '#fff',
         alignItems: 'center',
@@ -591,7 +758,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         lineHeight: 20,
     },
-    // Stats
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -622,7 +788,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
     },
-    // Quick Stats
     quickStatsContainer: {
         flexDirection: 'row',
         backgroundColor: '#fff',
@@ -635,6 +800,11 @@ const styles = StyleSheet.create({
     quickStatItem: {
         flex: 1,
         alignItems: 'center',
+    },
+    quickStatIconWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     quickStatNumber: {
         fontSize: 18,
@@ -650,7 +820,6 @@ const styles = StyleSheet.create({
         width: 1,
         backgroundColor: '#e0e0e0',
     },
-    // Menu
     menuContainer: {
         backgroundColor: '#fff',
         marginTop: 8,
@@ -706,7 +875,6 @@ const styles = StyleSheet.create({
     menuBadgeWarning: {
         backgroundColor: '#FF6B6B',
     },
-    // Logout
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',

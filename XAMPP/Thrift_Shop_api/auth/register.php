@@ -64,11 +64,9 @@ try {
         exit();
     }
     
-    // Get database connection using your Database class
     $db = Database::getInstance();
     $conn = $db->getConnection();
     
-    // Check if email exists
     $stmt = $conn->prepare("SELECT userID FROM user WHERE email = ?");
     $stmt->execute([$email]);
     
@@ -80,24 +78,12 @@ try {
         exit();
     }
     
-    // Hash password
+    // Hashing
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     
-    // Insert user
     $stmt = $conn->prepare("INSERT INTO user (name, email, password, role) VALUES (?, ?, ?, ?)");
     $result = $stmt->execute([$name, $email, $hashedPassword, $role]);
-    
-    if ($result) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Registration successful! Please login.'
-        ]);
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Registration failed'
-        ]);
-    }
+
     
 } catch (PDOException $e) {
     error_log("Register PDO error: " . $e->getMessage());

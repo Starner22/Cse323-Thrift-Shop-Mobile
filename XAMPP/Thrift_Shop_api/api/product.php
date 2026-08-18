@@ -37,7 +37,8 @@ $sql = "SELECT
         LEFT JOIN categories c ON p.categoryID = c.categoryID 
         WHERE p.status = 'approved' 
         AND p.can_display = 1 
-        AND p.seller_active = 1";
+        AND p.seller_active = 1
+        AND p.is_deleted = 0";
 
 if ($categoryID) {
     $sql .= " AND p.categoryID = " . intval($categoryID);

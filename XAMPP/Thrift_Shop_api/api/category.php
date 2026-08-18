@@ -39,6 +39,7 @@ $sql = "SELECT
             AND p.status = 'approved' 
             AND p.can_display = 1 
             AND p.seller_active = 1
+            AND p.is_deleted = 0
         GROUP BY c.categoryID
         ORDER BY c.name";
 

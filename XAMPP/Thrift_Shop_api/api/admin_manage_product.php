@@ -54,10 +54,12 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    
-    // GET: Fetch products with stats, search, filter
+
+
+    // GET: Fetch products
     
     if ($method === 'GET') {
+        $action = isset($_GET['action']) ? $_GET['action'] : '';
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
         $offset = ($page - 1) * $limit;
@@ -66,6 +68,67 @@ try {
         $categoryID = isset($_GET['category']) ? intval($_GET['category']) : 0;
         $sellerID = isset($_GET['sellerID']) ? intval($_GET['sellerID']) : 0;
         $productID = isset($_GET['productID']) ? intval($_GET['productID']) : 0;
+        $showDeleted = isset($_GET['showDeleted']) ? filter_var($_GET['showDeleted'], FILTER_VALIDATE_BOOLEAN) : false;
+
+        if ($action === 'deleted') {
+            $sql = "SELECT 
+                        p.*, 
+                        c.name as categoryName,
+                        u.name as sellerName,
+                        u.email as sellerEmail
+                    FROM product p
+                    LEFT JOIN categories c ON p.categoryID = c.categoryID
+                    LEFT JOIN user u ON p.sellerID = u.userID
+                    WHERE p.is_deleted = 1
+                    ORDER BY p.updated_at DESC
+                    LIMIT " . intval($limit) . " OFFSET " . intval($offset);
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Get total count of deleted products
+            $countSql = "SELECT COUNT(*) as total FROM product WHERE is_deleted = 1";
+            $countStmt = $conn->query($countSql);
+            $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
+            $totalCount = intval($totalResult['total']);
+
+            $formattedProducts = [];
+            foreach ($products as $product) {
+                $formattedProducts[] = [
+                    'productID' => intval($product['productID']),
+                    'name' => $product['name'],
+                    'description' => $product['description'],
+                    'price' => floatval($product['price']),
+                    'condition' => $product['condition'],
+                    'quantity' => intval($product['quantity']),
+                    'categoryID' => $product['categoryID'] ? intval($product['categoryID']) : null,
+                    'categoryName' => $product['categoryName'] ?? 'Uncategorized',
+                    'image_path' => $product['image_path'],
+                    'status' => $product['status'],
+                    'created_at' => $product['created_at'],
+                    'updated_at' => $product['updated_at'],
+                    'can_display' => intval($product['can_display'] ?? 0),
+                    'seller_active' => intval($product['seller_active'] ?? 1),
+                    'sellerName' => $product['sellerName'] ?? 'Unknown Seller',
+                    'sellerEmail' => $product['sellerEmail'] ?? 'N/A',
+                    'moderation_notes' => $product['moderation_notes'],
+                    'is_deleted' => intval($product['is_deleted'] ?? 1)
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => $formattedProducts,
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $totalCount,
+                    'totalPages' => $totalCount > 0 ? ceil($totalCount / $limit) : 1
+                ]
+            ]);
+            exit();
+        }
 
         // Get single product
         if ($productID > 0) {
@@ -94,6 +157,7 @@ try {
             $product['sellerID'] = intval($product['sellerID']);
             $product['can_display'] = intval($product['can_display'] ?? 0);
             $product['seller_active'] = intval($product['seller_active'] ?? 1);
+            $product['is_deleted'] = intval($product['is_deleted'] ?? 0);
             
             echo json_encode([
                 'success' => true,
@@ -102,25 +166,17 @@ try {
             exit();
         }
 
-        // Get product stats
-        $statsSql = "SELECT 
-                        COUNT(*) as total,
-                        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
-                        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
-                    FROM product";
-        $statsStmt = $conn->query($statsSql);
-        $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
-        
-        $stats['total'] = intval($stats['total']);
-        $stats['approved'] = intval($stats['approved']);
-        $stats['pending'] = intval($stats['pending']);
-        $stats['rejected'] = intval($stats['rejected']);
-
-        // Build product list query
+        // ============================================================
+        // Build WHERE clause - include or exclude deleted
+        // ============================================================
         $whereClause = "WHERE 1=1";
         $params = [];
-        
+
+        // If NOT showing deleted, exclude them
+        if (!$showDeleted) {
+            $whereClause .= " AND p.is_deleted = 0";
+        }
+
         if (!empty($search)) {
             $whereClause .= " AND (p.name LIKE ? OR p.description LIKE ?)";
             $searchParam = "%$search%";
@@ -270,21 +326,14 @@ try {
         }
         
         if ($action === 'delete') {
-            $stmt = $conn->prepare("SELECT image_path FROM product WHERE productID = ?");
-            $stmt->execute([$productID]);
-            $imagePath = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($imagePath && $imagePath['image_path']) {
-                $filePath = __DIR__ . '/../' . $imagePath['image_path'];
-                if (file_exists($filePath)) {
-                    unlink($filePath);
-                }
-            }
-            $stmt = $conn->prepare("DELETE FROM product WHERE productID = ?");
+            $stmt = $conn->prepare("UPDATE product SET is_deleted = 1 WHERE productID = ?");
             $stmt->execute([$productID]);
             logProductAction($adminID, 'delete_product', $productID, null);
-            echo json_encode(['success' => true, 'message' => 'Product deleted successfully']);
+            echo json_encode(['success' => true, 'message' => 'Product deleted']);
             exit();
         }
+
+
         
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         exit();

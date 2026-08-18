@@ -55,40 +55,8 @@ try {
     
     if ($method === 'GET') {
         $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
-        $sellerUserID = isset($_GET['userID']) ? intval($_GET['userID']) : 0;
         
-        // Get single seller details
-        if ($sellerUserID > 0) {
-            $sql = "SELECT 
-                        u.userID, u.name, u.email, u.phone, u.address, u.role,
-                        sp.*
-                    FROM user u
-                    LEFT JOIN seller_profile sp ON u.userID = sp.userID
-                    WHERE u.userID = ?";
-            
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$sellerUserID]);
-            $seller = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$seller) {
-                echo json_encode(['success' => false, 'message' => 'Seller not found']);
-                exit();
-            }
-            
-            // Get product count
-            $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE sellerID = ?");
-            $stmt->execute([$sellerUserID]);
-            $productCount = $stmt->fetch(PDO::FETCH_ASSOC);
-            $seller['product_count'] = intval($productCount['count']);
-            
-            // Get total sales (simplified)
-            $seller['total_sales'] = 0;
-            
-            echo json_encode($seller);
-            exit();
-        }
-        
-        // Get all sellers
+        // Get all sellers with revenue from completed orders
         $sql = "SELECT 
                     u.userID, 
                     u.name, 
@@ -106,7 +74,17 @@ try {
                     sp.approval_status,
                     sp.rejected_reason,
                     sp.created_at,
-                    sp.updated_at
+                    sp.updated_at,
+                    (SELECT COUNT(*) FROM product WHERE sellerID = u.userID) as product_count,
+                    (SELECT COUNT(*) FROM `order` o 
+                    JOIN orderitem oi ON o.orderID = oi.orderID 
+                    WHERE oi.productID IN (SELECT productID FROM product WHERE sellerID = u.userID) 
+                    AND o.orderStatus = 'Completed') as total_orders,
+                    (SELECT SUM(oi.price_at_purchase * oi.quantity) 
+                    FROM `order` o 
+                    JOIN orderitem oi ON o.orderID = oi.orderID 
+                    WHERE oi.productID IN (SELECT productID FROM product WHERE sellerID = u.userID) 
+                    AND o.orderStatus = 'Completed') as total_revenue
                 FROM user u
                 INNER JOIN seller_profile sp ON u.userID = sp.userID";
         
@@ -124,16 +102,24 @@ try {
         }
         $sellers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Add product counts and sales for each seller
-        foreach ($sellers as &$seller) {
-            $stmt = $conn->prepare("SELECT COUNT(*) as count FROM product WHERE sellerID = ?");
-            $stmt->execute([$seller['userID']]);
-            $count = $stmt->fetch(PDO::FETCH_ASSOC);
-            $seller['product_count'] = intval($count['count']);
-            $seller['total_sales'] = 0; // Simplified
+        // Format response
+        $formattedSellers = [];
+        foreach ($sellers as $seller) {
+            $formattedSellers[] = [
+                'userID' => intval($seller['userID']),
+                'name' => $seller['name'],
+                'email' => $seller['email'],
+                'phone' => $seller['phone'] ?? 'N/A',
+                'business_name' => $seller['business_name'],
+                'approval_status' => $seller['approval_status'],
+                'product_count' => intval($seller['product_count'] ?? 0),
+                'total_orders' => intval($seller['total_orders'] ?? 0),
+                'total_revenue' => floatval($seller['total_revenue'] ?? 0),
+                'created_at' => $seller['created_at']
+            ];
         }
         
-        echo json_encode($sellers);
+        echo json_encode($formattedSellers);
         exit();
     }
 

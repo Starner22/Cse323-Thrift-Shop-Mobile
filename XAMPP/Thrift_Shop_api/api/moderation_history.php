@@ -51,11 +51,8 @@ try {
         exit();
     }
 
-    
-    // Build query based on role
-    
-    $isAdmin = ($user['role'] === 'Admin');
-    
+    // ✅ FIX: ALWAYS filter by the current user for personal history
+    // This is the PERSONAL moderation history endpoint
     $sql = "SELECT 
                 historyID,
                 moderatorID,
@@ -66,21 +63,13 @@ try {
                 details,
                 ip_address,
                 created_at
-            FROM moderation_history";
-    
-    // If not admin, only show their own actions
-    if (!$isAdmin) {
-        $sql .= " WHERE moderatorID = ?";
-    }
-    
-    $sql .= " ORDER BY created_at DESC LIMIT 50";
+            FROM moderation_history
+            WHERE moderatorID = ?  -- ✅ Always filter by current user
+            ORDER BY created_at DESC 
+            LIMIT 50";
     
     $stmt = $conn->prepare($sql);
-    if (!$isAdmin) {
-        $stmt->execute([$userID]);
-    } else {
-        $stmt->execute();
-    }
+    $stmt->execute([$userID]);
     $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Format response
@@ -165,7 +154,7 @@ try {
             'limit' => 50,
             'offset' => 0
         ],
-        'isAdmin' => $isAdmin
+        'isAdmin' => ($user['role'] === 'Admin')
     ]);
 
 } catch (PDOException $e) {

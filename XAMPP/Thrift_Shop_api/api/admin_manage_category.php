@@ -41,8 +41,7 @@ try {
     $adminID = $payload['userID'];
     $db = Database::getInstance();
     $conn = $db->getConnection();
-
-    // Check if user is admin
+    
     $stmt = $conn->prepare("SELECT role FROM user WHERE userID = ?");
     $stmt->execute([$adminID]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -54,9 +53,9 @@ try {
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    
+    // ============================================================
     // GET: Fetch categories with product counts
-    
+    // ============================================================
     if ($method === 'GET') {
         $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
@@ -64,12 +63,10 @@ try {
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $categoryID = isset($_GET['categoryID']) ? intval($_GET['categoryID']) : 0;
 
-        
         // Get single category
-        
         if ($categoryID > 0) {
             $sql = "SELECT 
-                        c.categoryID, c.name, c.image_path, c.created_at,
+                        c.categoryID, c.name, c.image_path,
                         (SELECT COUNT(*) FROM product WHERE categoryID = c.categoryID) as product_count
                     FROM categories c
                     WHERE c.categoryID = ?";
@@ -93,9 +90,7 @@ try {
             exit();
         }
 
-        
         // Get all categories with counts
-        
         $whereClause = "WHERE 1=1";
         $params = [];
 
@@ -111,9 +106,9 @@ try {
         $totalResult = $countStmt->fetch(PDO::FETCH_ASSOC);
         $totalCount = intval($totalResult['total']);
 
-        // Main query
+        // Main query - REMOVED created_at
         $sql = "SELECT 
-                    c.categoryID, c.name, c.image_path, c.created_at,
+                    c.categoryID, c.name, c.image_path,
                     (SELECT COUNT(*) FROM product WHERE categoryID = c.categoryID) as product_count
                 FROM categories c
                 " . $whereClause . "
@@ -130,7 +125,6 @@ try {
                 'categoryID' => intval($category['categoryID']),
                 'name' => $category['name'],
                 'image_path' => $category['image_path'],
-                'created_at' => $category['created_at'],
                 'product_count' => intval($category['product_count'])
             ];
         }
@@ -148,9 +142,9 @@ try {
         exit();
     }
 
-    
+    // ============================================================
     // POST: Add new category
-    
+    // ============================================================
     if ($method === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -211,9 +205,9 @@ try {
         exit();
     }
 
-    
+    // ============================================================
     // PUT: Update category
-    
+    // ============================================================
     if ($method === 'PUT') {
         $input = json_decode(file_get_contents('php://input'), true);
         $categoryID = intval($input['categoryID'] ?? 0);
@@ -293,9 +287,9 @@ try {
         exit();
     }
 
-    
+    // ============================================================
     // DELETE: Delete category
-    
+    // ============================================================
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents('php://input'), true);
         $categoryID = intval($input['categoryID'] ?? 0);

@@ -119,7 +119,7 @@ try {
         }
 
         // ============================================================
-        // GET: All orders with stats
+        // GET: All orders with stats AND items
         // ============================================================
         $whereClause = "WHERE 1=1";
         $params = [];
@@ -155,9 +155,36 @@ try {
         $stmt->execute($params);
         $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Format orders
+        // ✅ NEW: Get items for each order
         $formattedOrders = [];
         foreach ($orders as $order) {
+            // Get items for this order
+            $itemSql = "SELECT 
+                            oi.orderItemID,
+                            oi.productID,
+                            oi.quantity,
+                            oi.price_at_purchase,
+                            p.name as product_name,
+                            p.image_path
+                        FROM orderitem oi
+                        INNER JOIN product p ON oi.productID = p.productID
+                        WHERE oi.orderID = ?";
+            $itemStmt = $conn->prepare($itemSql);
+            $itemStmt->execute([$order['orderID']]);
+            $items = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $formattedItems = [];
+            foreach ($items as $item) {
+                $formattedItems[] = [
+                    'orderItemID' => intval($item['orderItemID']),
+                    'productID' => intval($item['productID']),
+                    'product_name' => $item['product_name'],
+                    'quantity' => intval($item['quantity']),
+                    'price_at_purchase' => floatval($item['price_at_purchase']),
+                    'image_path' => $item['image_path']
+                ];
+            }
+
             $formattedOrders[] = [
                 'orderID' => intval($order['orderID']),
                 'buyerID' => intval($order['buyerID']),
@@ -173,7 +200,8 @@ try {
                 'shipping_phone' => $order['shipping_phone'],
                 'payment_method' => $order['payment_method'],
                 'payment_status' => $order['payment_status'],
-                'item_count' => intval($order['item_count'])
+                'item_count' => intval($order['item_count']),
+                'items' => $formattedItems  // ✅ ADDED: items array
             ];
         }
 
@@ -190,6 +218,14 @@ try {
         $statsStmt = $conn->query($statsSql);
         $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
+        // ✅ NEW: Calculate total products sold (from completed orders only)
+        $productsSoldSql = "SELECT COALESCE(SUM(oi.quantity), 0) as total_products_sold
+                            FROM orderitem oi
+                            INNER JOIN `order` o ON oi.orderID = o.orderID
+                            WHERE o.orderStatus = 'Completed'";
+        $productsSoldStmt = $conn->query($productsSoldSql);
+        $productsSold = $productsSoldStmt->fetch(PDO::FETCH_ASSOC);
+
         echo json_encode([
             'success' => true,
             'data' => $formattedOrders,
@@ -200,7 +236,8 @@ try {
                 'shipped' => intval($stats['shipped']),
                 'completed' => intval($stats['completed']),
                 'cancelled' => intval($stats['cancelled']),
-                'totalRevenue' => floatval($stats['totalRevenue'])
+                'totalRevenue' => floatval($stats['totalRevenue']),
+                'totalProductsSold' => intval($productsSold['total_products_sold'])  // ✅ ADDED
             ]
         ]);
         exit();

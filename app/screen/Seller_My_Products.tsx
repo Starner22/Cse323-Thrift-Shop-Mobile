@@ -11,7 +11,8 @@ import {
     ActivityIndicator,
     RefreshControl,
     Alert,
-    TextInput
+    TextInput,
+    Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +37,7 @@ interface Product {
 }
 
 const Seller_My_Products = ({ navigation }: any) => {
+    const { user, isAuthenticated } = useAuth();
     const [products, setProducts] = useState<Product[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -44,15 +46,18 @@ const Seller_My_Products = ({ navigation }: any) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [togglingId, setTogglingId] = useState<number | null>(null);
-    const { user, isAuthenticated } = useAuth();
     const [isSuspended, setIsSuspended] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportEmail, setExportEmail] = useState('');
+    const [exporting, setExporting] = useState(false);
 
-    const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
+    const imageBaseUrl = 'http://192.168.0.101/Thrift_Shop_api/';
 
     useEffect(() => {
         if (isAuthenticated) {
             checkSellerStatus();
             fetchProducts();
+            setExportEmail(user?.email || '');
         }
     }, [isAuthenticated]);
 
@@ -108,6 +113,92 @@ const Seller_My_Products = ({ navigation }: any) => {
         setFilteredProducts(filtered);
     };
 
+    const handleExportProducts = async () => {
+        if (!exportEmail || !exportEmail.includes('@')) {
+            Alert.alert('Error', 'Please enter a valid email address');
+            return;
+        }
+        
+        try {
+            setExporting(true);
+            const response = await apiService.exportSellerProducts(exportEmail);
+            
+            if (response && response.success) {
+                Alert.alert(
+                    '✅ Report Sent',
+                    `Product inventory report has been sent to:\n\n${exportEmail}`,
+                    [{ text: 'OK' }]
+                );
+                setShowExportModal(false);
+            } else {
+                Alert.alert('Error', response?.message || 'Failed to generate report');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error?.message || 'Failed to export products');
+        } finally {
+            setExporting(false);
+        }
+    };
+    const renderExportModal = () => (
+        <Modal
+            visible={showExportModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowExportModal(false)}
+        >
+            <View style={styles.modalOverlay}>
+                <TouchableOpacity 
+                    style={styles.modalBackground}
+                    onPress={() => setShowExportModal(false)}
+                />
+                <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Export Product Report</Text>
+                        <TouchableOpacity onPress={() => setShowExportModal(false)}>
+                            <Ionicons name="close" size={24} color="#333" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.modalBody}>
+                        <Text style={styles.modalLabel}>Email Address</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={exportEmail}
+                            onChangeText={setExportEmail}
+                            placeholder="Enter your email"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <Text style={styles.modalHint}>
+                            The report includes all your products with stock, sales, and revenue data.
+                        </Text>
+                    </View>
+                    
+                    <View style={styles.modalFooter}>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, styles.modalCancel]}
+                            onPress={() => setShowExportModal(false)}
+                        >
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, styles.modalSend]}
+                            onPress={handleExportProducts}
+                            disabled={exporting}
+                        >
+                            {exporting ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.modalSendText}>Send Report</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+
     const handleDelete = (productID: number, productName: string) => {
         Alert.alert(
             'Delete Product',
@@ -138,9 +229,6 @@ const Seller_My_Products = ({ navigation }: any) => {
         navigation.navigate('SellerEditProduct', { product });
     };
 
-    // ============================================================
-    // NEW: Toggle visibility handler
-    // ============================================================
     const handleToggleVisibility = async (product: Product) => {
         const isVisible = product.seller_active === 1;
         const newStatus = isVisible ? 0 : 1;
@@ -200,7 +288,6 @@ const Seller_My_Products = ({ navigation }: any) => {
         const isVisible = item.seller_active === 1;
         const isHiddenByMod = item.can_display === 0;
 
-        // Determine visibility status
         let visibilityText = '';
         let visibilityColor = '';
         let visibilityIcon: any = '';
@@ -238,7 +325,6 @@ const Seller_My_Products = ({ navigation }: any) => {
                                 <Ionicons name="image-outline" size={30} color="#ccc" />
                             </View>
                         )}
-                        {/* Visibility Badge */}
                         <View style={[styles.hiddenBadge, { backgroundColor: isHiddenByMod ? '#FF6B6B' : '#FF9F43' }]}>
                             <Ionicons name={visibilityIcon} size={12} color="#fff" />
                             <Text style={styles.hiddenBadgeText}>{visibilityText}</Text>
@@ -285,7 +371,6 @@ const Seller_My_Products = ({ navigation }: any) => {
                         <Text style={styles.editButtonText}>Edit</Text>
                     </TouchableOpacity>
 
-                    {/* Show/Hide Button - Only for approved products AND not hidden by moderator */}
                     {item.status === 'approved' && !isHiddenByMod && (
                         <TouchableOpacity 
                             style={[
@@ -312,7 +397,6 @@ const Seller_My_Products = ({ navigation }: any) => {
                         </TouchableOpacity>
                     )}
 
-                    {/* Show disabled button if hidden by moderator */}
                     {item.status === 'approved' && isHiddenByMod && (
                         <TouchableOpacity 
                             style={[styles.actionButton, styles.moderatorDisabledButton]}
@@ -392,103 +476,118 @@ const Seller_My_Products = ({ navigation }: any) => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <>
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            <View style={styles.topBar}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-                    <Ionicons name="arrow-back" size={28} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.storeTitle}>My Products</Text>
-                <TouchableOpacity 
-                    style={styles.addButton}
-                    onPress={() => navigation.navigate('SellerSellProduct')}
-                >
-                    <Ionicons name="add" size={24} color="#4CAF50" />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#999" />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search your products..."
-                        placeholderTextColor="#999"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={20} color="#999" />
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
-
-            <View style={styles.filterContainer}>
-                {['all', 'pending', 'approved', 'rejected'].map((filter) => {
-                    const count = products.filter(p => filter === 'all' ? true : p.status === filter).length;
-                    const isActive = activeFilter === filter;
-                    return (
-                        <TouchableOpacity
-                            key={filter}
-                            style={[styles.filterTab, isActive && styles.filterTabActive]}
-                            onPress={() => setActiveFilter(filter)}
-                        >
-                            <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                                {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                            </Text>
-                            <View style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
-                                <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
-                                    {count}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#4CAF50" />
-                    <Text style={styles.loadingText}>Loading your products...</Text>
-                </View>
-            ) : filteredProducts.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="cube-outline" size={80} color="#ccc" />
-                    <Text style={styles.emptyTitle}>
-                        {searchQuery.trim() ? 'No products match your search' : 'No products yet'}
-                    </Text>
-                    <Text style={styles.emptySubtext}>
-                        {searchQuery.trim() 
-                            ? 'Try a different search term' 
-                            : 'Start selling by adding your first product!'}
-                    </Text>
-                    {!searchQuery.trim() && (
+                <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={28} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.storeTitle}>My Products</Text>
+                    <View style={styles.topBarRight}>
                         <TouchableOpacity 
-                            style={styles.browseButton}
+                            style={styles.exportTopButton}
+                            onPress={() => {
+                                setExportEmail(user?.email || '');
+                                setShowExportModal(true);
+                            }}
+                        >
+                            <Ionicons name="document-text-outline" size={24} color="#6C5CE7" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={styles.addButton}
                             onPress={() => navigation.navigate('SellerSellProduct')}
                         >
-                            <Ionicons name="add" size={20} color="#fff" />
-                            <Text style={styles.browseButtonText}>Add Product</Text>
+                            <Ionicons name="add" size={28} color="#4CAF50" />
                         </TouchableOpacity>
-                    )}
+                    </View>
                 </View>
-            ) : (
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                    contentContainerStyle={styles.scrollContent}
-                >
-                    {filteredProducts.map((item) => (
-                        <View key={item.productID}>
-                            {renderProduct({ item })}
-                        </View>
-                    ))}
-                </ScrollView>
-            )}
-        </SafeAreaView>
+
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchBar}>
+                        <Ionicons name="search" size={20} color="#999" />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search your products..."
+                            placeholderTextColor="#999"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <Ionicons name="close-circle" size={20} color="#999" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                <View style={styles.filterContainer}>
+                    {['all', 'pending', 'approved', 'rejected'].map((filter) => {
+                        const count = products.filter(p => filter === 'all' ? true : p.status === filter).length;
+                        const isActive = activeFilter === filter;
+                        return (
+                            <TouchableOpacity
+                                key={filter}
+                                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                                onPress={() => setActiveFilter(filter)}
+                            >
+                                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                                </Text>
+                                <View style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
+                                    <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
+                                        {count}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#4CAF50" />
+                        <Text style={styles.loadingText}>Loading your products...</Text>
+                    </View>
+                ) : filteredProducts.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="cube-outline" size={80} color="#ccc" />
+                        <Text style={styles.emptyTitle}>
+                            {searchQuery.trim() ? 'No products match your search' : 'No products yet'}
+                        </Text>
+                        <Text style={styles.emptySubtext}>
+                            {searchQuery.trim() 
+                                ? 'Try a different search term' 
+                                : 'Start selling by adding your first product!'}
+                        </Text>
+                        {!searchQuery.trim() && (
+                            <TouchableOpacity 
+                                style={styles.browseButton}
+                                onPress={() => navigation.navigate('SellerSellProduct')}
+                            >
+                                <Ionicons name="add" size={20} color="#fff" />
+                                <Text style={styles.browseButtonText}>Add Product</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                ) : (
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                        contentContainerStyle={styles.scrollContent}
+                    >
+                        {filteredProducts.map((item) => (
+                            <View key={item.productID}>
+                                {renderProduct({ item })}
+                            </View>
+                        ))}
+                    </ScrollView>
+                )}
+            </SafeAreaView>
+
+            {renderExportModal()}
+        </>
     );
 };
 
@@ -507,6 +606,11 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#e0e0e0',
     },
+    topBarRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     iconButton: {
         padding: 4,
     },
@@ -518,6 +622,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     addButton: {
+        padding: 4,
+    },
+    exportTopButton: {
         padding: 4,
     },
     searchContainer: {
@@ -854,7 +961,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-
     moderatorHiddenCard: {
         borderColor: '#FF6B6B',
         borderWidth: 1.5,
@@ -876,6 +982,87 @@ const styles = StyleSheet.create({
         color: '#FF6B6B',
         marginTop: 2,
         fontStyle: 'italic',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalBackground: {
+        flex: 1,
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    modalBody: {
+        padding: 20,
+    },
+    modalLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 16,
+        backgroundColor: '#f8f9fa',
+    },
+    modalHint: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 8,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalCancel: {
+        backgroundColor: '#f0f0f0',
+    },
+    modalCancelText: {
+        color: '#666',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    modalSend: {
+        backgroundColor: '#6C5CE7',
+    },
+    modalSendText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
 

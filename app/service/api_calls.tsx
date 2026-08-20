@@ -1277,6 +1277,60 @@ async getCurrentUser(): Promise<any | null> {
             return { success: false, data: [] };
         }
     }
+
+    // ========== PDF EXPORT ==========
+
+    async exportOrderPDF(orderID: number): Promise<any> {
+        try {
+            console.log('📤 Exporting PDF for order:', orderID);
+            const response = await this.request<any>('/buyer_single_order_export_to_pdf.php', {
+                method: 'POST',
+                body: JSON.stringify({ orderID }),
+            }, true);
+            console.log('📥 Export response:', response);
+            return response;
+        } catch (error: any) {
+            console.error('❌ Export PDF error:', error);
+            // Return a user-friendly error
+            return { 
+                success: false, 
+                message: error?.message || 'Failed to generate PDF. Please try again.' 
+            };
+        }
+    }
+
+    async exportOrderPDFWithEmail(orderID: number, email: string): Promise<any> {
+        try {
+            console.log('📤 Exporting PDF with email:', { orderID, email });
+            const response = await this.request<any>('/buyer_single_order_export_to_pdf.php', {
+                method: 'POST',
+                body: JSON.stringify({ orderID, email }),
+            }, true);
+            console.log('📥 Export response:', response);
+            return response;
+        } catch (error: any) {
+            console.error('❌ Export PDF with email error:', error);
+            return { 
+                success: false, 
+                message: error?.message || 'Failed to send PDF. Please try again.' 
+            };
+        }
+    }
+
+    // ========== SELLER - EXPORT ==========
+
+    async exportSellerProducts(email: string): Promise<any> {
+        try {
+            return await this.request<any>('/seller_products_export_to_pdf.php', {
+                method: 'POST',
+                body: JSON.stringify({ email }),
+            }, true);
+        } catch (error) {
+            console.error('Error exporting seller products:', error);
+            throw error;
+        }
+    }
+
 }
 
 export const apiService = new ApiService();

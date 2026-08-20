@@ -21,7 +21,9 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
     const [cartCount, setCartCount] = useState(0);
     const [orderStats, setOrderStats] = useState({
         total: 0,
-        pending: 0
+        pending: 0,
+        completed: 0,
+        totalSpent: 0
     });
 
     useEffect(() => {
@@ -42,9 +44,19 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
             if (ordersResponse && ordersResponse.success) {
                 const orders = ordersResponse.data || [];
                 const pending = orders.filter((o: any) => o.orderStatus === 'Pending').length;
+                const completed = orders.filter((o: any) => o.orderStatus === 'Completed').length;
+                let totalSpent = 0;
+                orders.forEach((order: any) => {
+                    if (order.orderStatus === 'Completed') {
+                        totalSpent += parseFloat(order.totalPrice || 0);
+                    }
+                });
+                
                 setOrderStats({
                     total: orders.length,
-                    pending: pending
+                    pending: pending,
+                    completed: completed,
+                    totalSpent: totalSpent
                 });
             }
         } catch (error) {
@@ -133,6 +145,10 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
         }
     };
 
+    const formatCurrency = (amount: number) => {
+        return `$${amount.toFixed(2)}`;
+    };
+
     if (!isAuthenticated) {
         return (
             <SafeAreaView style={styles.container}>
@@ -189,7 +205,6 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
                     </Text>
                 </View>
 
-
                 <View style={styles.statsContainer}>
                     <TouchableOpacity style={styles.statCard} onPress={handleOrders}>
                         <View style={[styles.statIconContainer, { backgroundColor: '#e3f2fd' }]}>
@@ -218,6 +233,25 @@ const Buyer_Account_Screen = ({ navigation }: any) => {
                         </View>
                         <Text style={styles.statNumber}>{cartCount}</Text>
                         <Text style={styles.statLabel}>Cart Items</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.spentContainer}>
+                    <TouchableOpacity 
+                        style={styles.spentCard}
+                        onPress={handleOrders}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.spentIconContainer}>
+                            <Ionicons name="cash-outline" size={28} color="#fff" />
+                        </View>
+                        <View style={styles.spentInfo}>
+                            <Text style={styles.spentLabel}>Total Spent</Text>
+                            <Text style={styles.spentAmount}>{formatCurrency(orderStats.totalSpent)}</Text>
+                            <Text style={styles.spentSubtext}>
+                                {orderStats.completed} completed {orderStats.completed === 1 ? 'order' : 'orders'}
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
                     </TouchableOpacity>
                 </View>
 
@@ -483,6 +517,51 @@ const styles = StyleSheet.create({
         fontSize: 9,
         color: '#fff',
         fontWeight: '600',
+    },
+    spentContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#fff',
+        marginTop: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    spentCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#e8e8e8',
+    },
+    spentIconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#4CAF50',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 14,
+    },
+    spentInfo: {
+        flex: 1,
+    },
+    spentLabel: {
+        fontSize: 12,
+        color: '#999',
+        fontWeight: '500',
+    },
+    spentAmount: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#333',
+        marginTop: 1,
+    },
+    spentSubtext: {
+        fontSize: 11,
+        color: '#999',
+        marginTop: 1,
     },
     menuContainer: {
         backgroundColor: '#fff',

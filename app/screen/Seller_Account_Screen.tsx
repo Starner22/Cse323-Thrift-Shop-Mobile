@@ -7,9 +7,8 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    Image,
     Alert,
-    RefreshControl
+    RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -24,7 +23,12 @@ const Seller_Account_Screen = ({ navigation }: any) => {
     const [isSuspended, setIsSuspended] = useState(false);
     const [wishlistCount, setWishlistCount] = useState(0);
     const [cartCount, setCartCount] = useState(0);
-    const [buyerOrderStats, setBuyerOrderStats] = useState({pending: 0,total: 0});
+    const [buyerOrderStats, setBuyerOrderStats] = useState({
+        pending: 0,
+        total: 0,
+        completed: 0,
+        totalSpent: 0
+    });
     const [stats, setStats] = useState({
         totalProducts: 0,
         totalOrders: 0,
@@ -58,6 +62,7 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     setSellerProfile(profile.profile);
                 }
             }
+
             const productsData = await apiService.getMyProducts();
             const activeProducts = productsData.filter(p => p.is_deleted !== 1);
 
@@ -167,16 +172,47 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         }
     };
 
+    const fetchBuyerOrders = async () => {
+        try {
+            const response = await apiService.getMyOrders();
+            if (response && response.success) {
+                const orders = response.data || [];
+                const pending = orders.filter((o: any) => o.orderStatus === 'Pending').length;
+                const completed = orders.filter((o: any) => o.orderStatus === 'Completed').length;
+                
+                let totalSpent = 0;
+                orders.forEach((order: any) => {
+                    if (order.orderStatus === 'Completed') {
+                        totalSpent += parseFloat(order.totalPrice || 0);
+                    }
+                });
+                
+                setBuyerOrderStats({
+                    total: orders.length,
+                    pending: pending,
+                    completed: completed,
+                    totalSpent: totalSpent
+                });
+            } else {
+                setBuyerOrderStats({ total: 0, pending: 0, completed: 0, totalSpent: 0 });
+            }
+        } catch (error) {
+            console.error('Error fetching buyer orders:', error);
+            setBuyerOrderStats({ total: 0, pending: 0, completed: 0, totalSpent: 0 });
+        }
+    };
+
     const onRefresh = async () => {
         setRefreshing(true);
         await Promise.all([
             fetchSellerData(),
             fetchWishlistCount(),
-            fetchCartCount()
+            fetchCartCount(),
+            fetchBuyerOrders()
         ]);
         setRefreshing(false);
     };
-
+    
     const handleLogout = () => {
         Alert.alert(
             'Logout',
@@ -231,37 +267,17 @@ const Seller_Account_Screen = ({ navigation }: any) => {
         navigation.navigate('Cart');
     };
 
-    const fetchBuyerOrders = async () => {
-            try {
-                const response = await apiService.getMyOrders();
-                if (response && response.success) {
-                    const orders = response.data || [];
-                    const pending = orders.filter((o: any) => o.orderStatus === 'Pending').length;
-                    setBuyerOrderStats({
-                        total: orders.length,
-                        pending: pending
-                    });
-                } else {
-                    setBuyerOrderStats({ total: 0, pending: 0 });
-                }
-            } catch (error) {
-                console.error('Error fetching buyer orders:', error);
-                setBuyerOrderStats({ total: 0, pending: 0 });
-            }
-        };
-
-
     const handleSalesAnalytics = () => {
         Alert.alert(
             'Sales Analytics',
-            `Your Sales Summary\n\n` +
+            `📊 Your Sales Summary\n\n` +
             `Total Orders: ${stats.totalOrders}\n` +
             `Completed: ${stats.completedOrders}\n` +
             `Pending: ${stats.pendingOrders}\n` +
             `Cancelled: ${stats.cancelledOrders}\n\n` +
-            `Total Revenue: $${stats.totalRevenue.toFixed(2)}\n` +
-            `Items Sold: ${stats.totalItemsSold}\n` +
-            `Products Listed: ${stats.totalProducts}`,
+            `💰 Total Revenue: $${stats.totalRevenue.toFixed(2)}\n` +
+            `📦 Items Sold: ${stats.totalItemsSold}\n` +
+            `📝 Products Listed: ${stats.totalProducts}`,
             [{ text: 'OK' }]
         );
     };
@@ -318,7 +334,6 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                 showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
-
                 <View style={styles.profileHeader}>
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: '#4CAF50' }]}>
@@ -432,11 +447,10 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     </TouchableOpacity>
                     
                     <View style={styles.quickStatDivider} />
-                    
                 </View>
 
                 <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Seller Tools</Text>
+                    <Text style={styles.menuTitle}>🛍️ Seller Tools</Text>
 
                     {!isSuspended ? (
                         <>
@@ -488,10 +502,48 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                     )}
                 </View>
 
-                <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Buyer Tools</Text>
+                <View style={styles.buyerStatsContainer}>
+                    <View style={styles.buyerStatsTitleContainer}>
+                        <Ionicons name="cart-outline" size={18} color="#6C5CE7" />
+                        <Text style={styles.buyerStatsTitle}>Your Spending</Text>
+                    </View>
+                    <View style={styles.buyerStatsRow}>
+                        <TouchableOpacity 
+                            style={styles.buyerStatItem}
+                            onPress={handleMyOrders}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.buyerStatIcon, { backgroundColor: '#e8f5e9' }]}>
+                                <Ionicons name="checkmark-circle-outline" size={22} color="#4CAF50" />
+                            </View>
+                            <View style={styles.buyerStatInfo}>
+                                <Text style={styles.buyerStatNumber}>{buyerOrderStats.completed}</Text>
+                                <Text style={styles.buyerStatLabel}>Completed Orders</Text>
+                            </View>
+                        </TouchableOpacity>
+                        
+                        <View style={styles.buyerStatDivider} />
+                        
+                        <TouchableOpacity 
+                            style={styles.buyerStatItem}
+                            onPress={handleMyOrders}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.buyerStatIcon, { backgroundColor: '#e3f2fd' }]}>
+                                <Ionicons name="cash-outline" size={22} color="#2196F3" />
+                            </View>
+                            <View style={styles.buyerStatInfo}>
+                                <Text style={styles.buyerStatNumber}>{formatCurrency(buyerOrderStats.totalSpent)}</Text>
+                                <Text style={styles.buyerStatLabel}>Total Spent</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
-<                   TouchableOpacity style={styles.menuItem} onPress={handleMyOrders}>
+                <View style={styles.menuContainer}>
+                    <Text style={styles.menuTitle}>🛒 Buyer Tools</Text>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleMyOrders}>
                         <View style={styles.menuLeft}>
                             <View style={[styles.menuIcon, { backgroundColor: '#e3f2fd' }]}>
                                 <Ionicons name="receipt-outline" size={22} color="#2196F3" />
@@ -541,7 +593,7 @@ const Seller_Account_Screen = ({ navigation }: any) => {
                 </View>
 
                 <View style={styles.menuContainer}>
-                    <Text style={styles.menuTitle}>Account Settings</Text>
+                    <Text style={styles.menuTitle}>⚙️ Account Settings</Text>
 
                     <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
                         <View style={styles.menuLeft}>
@@ -891,6 +943,61 @@ const styles = StyleSheet.create({
         color: '#FF6B6B',
         fontWeight: '600',
         marginLeft: 8,
+    },
+    buyerStatsContainer: {
+        backgroundColor: '#fff',
+        marginTop: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    buyerStatsTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 10,
+    },
+    buyerStatsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+    },
+    buyerStatsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    buyerStatItem: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    buyerStatIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    buyerStatInfo: {
+        flex: 1,
+    },
+    buyerStatNumber: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    buyerStatLabel: {
+        fontSize: 11,
+        color: '#999',
+    },
+    buyerStatDivider: {
+        width: 1,
+        backgroundColor: '#e0e0e0',
+        height: 40,
     },
 });
 

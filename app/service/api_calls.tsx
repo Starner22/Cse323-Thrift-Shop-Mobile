@@ -1331,6 +1331,24 @@ async getCurrentUser(): Promise<any | null> {
         }
     }
 
+    // ========== ADMIN - EXPORT ==========
+
+    async exportModerationHistory(email: string, fromDate?: string, toDate?: string, action?: string): Promise<any> {
+        try {
+            return await this.request<any>('/admin_moderation_history_export_to_pdf.php', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    email, 
+                    fromDate, 
+                    toDate, 
+                    action 
+                }),
+            }, true);
+        } catch (error) {
+            console.error('Error exporting moderation history:', error);
+            throw error;
+        }
+    }
 }
 
 export const apiService = new ApiService();

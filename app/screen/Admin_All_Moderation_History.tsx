@@ -11,12 +11,14 @@ import {
     RefreshControl,
     FlatList,
     Modal,
-    TextInput
+    TextInput,
+    Alert,
+    Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../service/api_calls';
-
 
 interface HistoryEntry {
     historyID: number;
@@ -48,7 +50,6 @@ interface HistoryEntry {
         name: string;
     } | null;
 }
-
 
 const formatDetails = (details: string | null, action: string): string | null => {
     if (!details) return null;
@@ -118,14 +119,12 @@ const formatDetails = (details: string | null, action: string): string | null =>
        
         return null;
     } catch (e) {
-        // Not JSON, return as is if it looks like a reason
         if (details && details.length < 200) {
             return details;
         }
         return null;
     }
 };
-
 
 const Admin_All_Moderation_History = ({ navigation }: any) => {
     const { user, isAuthenticated } = useAuth();
@@ -135,22 +134,33 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
     const [selectedEntry, setSelectedEntry] = useState<HistoryEntry | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [filter, setFilter] = useState<string>('all');
-   
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
-
+    
+    // ✅ Date picker states
+    const [fromDate, setFromDate] = useState<Date | null>(null);
+    const [toDate, setToDate] = useState<Date | null>(null);
+    const [showFromPicker, setShowFromPicker] = useState(false);
+    const [showToPicker, setShowToPicker] = useState(false);
+    
+    // Export modal states
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportEmail, setExportEmail] = useState('');
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         if (isAuthenticated) {
             fetchHistory();
+            setExportEmail(user?.email || '');
         }
     }, [isAuthenticated]);
-
 
     const fetchHistory = async () => {
         try {
             setLoading(true);
-            const response = await apiService.getAllModerationHistory(fromDate, toDate);
+            // ✅ Convert dates to YYYY-MM-DD for API
+            const fromDateStr = fromDate ? formatDateToAPI(fromDate) : '';
+            const toDateStr = toDate ? formatDateToAPI(toDate) : '';
+            
+            const response = await apiService.getAllModerationHistory(fromDateStr, toDateStr);
             console.log('📡 History response:', JSON.stringify(response, null, 2));
             if (response && response.success) {
                 const rawData = response.data || [];
@@ -188,6 +198,22 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         }
     };
 
+    // ✅ Helper: Format date to YYYY-MM-DD for API
+    const formatDateToAPI = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // ✅ Helper: Format date for display (e.g., "Aug 20, 2026")
+    const formatDateDisplay = (date: Date): string => {
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -195,25 +221,73 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         setRefreshing(false);
     };
 
-
     const handleApplyFilters = () => {
         fetchHistory();
     };
 
-
     const handleClearFilters = () => {
-        setFromDate('');
-        setToDate('');
+        setFromDate(null);
+        setToDate(null);
         setFilter('all');
         fetchHistory();
     };
-
 
     const handleViewDetails = (entry: HistoryEntry) => {
         setSelectedEntry(entry);
         setShowDetailModal(true);
     };
 
+    const handleExportPDF = async () => {
+        if (!exportEmail || !exportEmail.includes('@')) {
+            Alert.alert('Error', 'Please enter a valid email address');
+            return;
+        }
+        
+        try {
+            setExporting(true);
+            const actionFilter = filter === 'all' ? '' : filter;
+            const fromDateStr = fromDate ? formatDateToAPI(fromDate) : '';
+            const toDateStr = toDate ? formatDateToAPI(toDate) : '';
+            
+            const response = await apiService.exportModerationHistory(
+                exportEmail,
+                fromDateStr,
+                toDateStr,
+                actionFilter
+            );
+            
+            if (response && response.success) {
+                Alert.alert(
+                    '✅ Report Sent',
+                    `Moderation history report has been sent to:\n\n${exportEmail}`,
+                    [{ text: 'OK' }]
+                );
+                setShowExportModal(false);
+            } else {
+                Alert.alert('Error', response?.message || 'Failed to generate report');
+            }
+        } catch (error: any) {
+            console.error('Export error:', error);
+            Alert.alert('Error', error?.message || 'Failed to export moderation history');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    // ✅ Date Picker Handlers
+    const onFromDateChange = (event: any, selectedDate?: Date) => {
+        setShowFromPicker(Platform.OS === 'ios');
+        if (selectedDate) {
+            setFromDate(selectedDate);
+        }
+    };
+
+    const onToDateChange = (event: any, selectedDate?: Date) => {
+        setShowToPicker(Platform.OS === 'ios');
+        if (selectedDate) {
+            setToDate(selectedDate);
+        }
+    };
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
@@ -225,7 +299,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         }
     };
 
-
     const getCategoryColor = (category: string) => {
         switch (category) {
             case 'seller': return '#FF9800';
@@ -235,7 +308,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
             default: return '#999';
         }
     };
-
 
     const getActionColor = (action: string) => {
         const approveActions = ['approve_seller', 'approve_product', 'add_moderator', 'restore_seller', 'restore_user', 'show_product'];
@@ -248,7 +320,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         if (action === 'add_note') return '#9C27B0';
         return '#999';
     };
-
 
     const getActionLabel = (action: string) => {
         const labels: { [key: string]: string } = {
@@ -277,18 +348,94 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         return labels[action] || action.replace('_', ' ');
     };
 
-
     const formatDate = (dateString: string) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-
     const filteredHistory = filter === 'all'
         ? history
         : history.filter(h => h.action_category === filter);
 
+    const renderExportModal = () => (
+        <Modal
+            visible={showExportModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowExportModal(false)}
+        >
+            <View style={styles.modalOverlay}>
+                <TouchableOpacity 
+                    style={styles.modalBackground}
+                    onPress={() => setShowExportModal(false)}
+                />
+                <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Export Moderation History</Text>
+                        <TouchableOpacity onPress={() => setShowExportModal(false)}>
+                            <Ionicons name="close" size={24} color="#333" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.modalBody}>
+                        <Text style={styles.modalLabel}>Email Address</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={exportEmail}
+                            onChangeText={setExportEmail}
+                            placeholder="Enter your email"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        
+                        <Text style={[styles.modalLabel, { marginTop: 12 }]}>Report Details</Text>
+                        <View style={styles.exportSummary}>
+                            <View style={styles.exportSummaryRow}>
+                                <Text style={styles.exportSummaryLabel}>Total Records:</Text>
+                                <Text style={styles.exportSummaryValue}>{filteredHistory.length}</Text>
+                            </View>
+                            <View style={styles.exportSummaryRow}>
+                                <Text style={styles.exportSummaryLabel}>Filter:</Text>
+                                <Text style={styles.exportSummaryValue}>{filter === 'all' ? 'All Categories' : filter}</Text>
+                            </View>
+                            <View style={styles.exportSummaryRow}>
+                                <Text style={styles.exportSummaryLabel}>Date Range:</Text>
+                                <Text style={styles.exportSummaryValue}>
+                                    {fromDate ? formatDateDisplay(fromDate) : 'All'} to {toDate ? formatDateDisplay(toDate) : 'All'}
+                                </Text>
+                            </View>
+                        </View>
+                        
+                        <Text style={styles.modalHint}>
+                            The report will be sent as a PDF attachment with all moderation actions.
+                        </Text>
+                    </View>
+                    
+                    <View style={styles.modalFooter}>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, styles.modalCancel]}
+                            onPress={() => setShowExportModal(false)}
+                        >
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, styles.modalSend]}
+                            onPress={handleExportPDF}
+                            disabled={exporting}
+                        >
+                            {exporting ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.modalSendText}>Send Report</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
 
     const renderHistoryItem = ({ item }: { item: HistoryEntry }) => {
         const actionColor = getActionColor(item.action);
@@ -299,7 +446,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         const targetName = item.target_user?.name || item.target_user_name || null;
         const targetRole = item.target_user?.role || item.target_user_role || null;
         const productName = item.target_product?.name || item.target_product_name || null;
-
 
         return (
             <TouchableOpacity
@@ -325,7 +471,6 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                     <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
                 </View>
 
-
                 <View style={styles.cardBody}>
                     {targetName && (
                         <View style={styles.targetContainer}>
@@ -344,12 +489,10 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
                             </Text>
                         </View>
                     )}
-
                 </View>
             </TouchableOpacity>
         );
     };
-
 
     if (!isAuthenticated || user?.role !== 'Admin') {
         return (
@@ -372,239 +515,260 @@ const Admin_All_Moderation_History = ({ navigation }: any) => {
         );
     }
 
-
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <>
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            <View style={styles.topBar}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-                    <Ionicons name="arrow-back" size={28} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.storeTitle}>All Moderation History</Text>
-                <TouchableOpacity style={styles.iconButton} onPress={onRefresh}>
-                    <Ionicons name="refresh-outline" size={28} color="#333" />
-                </TouchableOpacity>
-            </View>
-
-            <View style={styles.filterSection}>
-                <View style={styles.filterRow}>
-                    <View style={styles.filterInputGroup}>
-                        <Text style={styles.filterLabel}>From:</Text>
-                        <TextInput
-                            style={styles.filterInput}
-                            placeholder="YYYY-MM-DD"
-                            placeholderTextColor="#999"
-                            value={fromDate}
-                            onChangeText={setFromDate}
-                        />
-                    </View>
-                    <View style={styles.filterInputGroup}>
-                        <Text style={styles.filterLabel}>To:</Text>
-                        <TextInput
-                            style={styles.filterInput}
-                            placeholder="YYYY-MM-DD"
-                            placeholderTextColor="#999"
-                            value={toDate}
-                            onChangeText={setToDate}
-                        />
-                    </View>
-                </View>
-
-
-                <View style={styles.filterActions}>
-                    <TouchableOpacity
-                        style={[styles.filterActionButton, styles.applyButton]}
-                        onPress={handleApplyFilters}
-                    >
-                        <Ionicons name="search" size={16} color="#fff" />
-                        <Text style={styles.filterActionText}>Apply</Text>
+                <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={28} color="#333" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.filterActionButton, styles.clearButton]}
-                        onPress={handleClearFilters}
+                    <Text style={styles.storeTitle}>All Moderation History</Text>
+                    <TouchableOpacity 
+                        style={styles.iconButton} 
+                        onPress={() => {
+                            setExportEmail(user?.email || '');
+                            setShowExportModal(true);
+                        }}
                     >
-                        <Ionicons name="refresh" size={16} color="#666" />
-                        <Text style={[styles.filterActionText, { color: '#666' }]}>Clear</Text>
+                        <Ionicons name="document-text-outline" size={28} color="#6C5CE7" />
                     </TouchableOpacity>
                 </View>
-            </View>
 
-            <View style={styles.filterContainer}>
-                {[
-                    { key: 'all', label: 'All' },
-                    { key: 'seller', label: 'Sellers' },
-                    { key: 'product', label: 'Products' },
-                    { key: 'user', label: 'Users' },
-                    { key: 'moderator', label: 'Moderators' },
-                ].map((filterItem) => {
-                    const isActive = filter === filterItem.key;
-                    return (
-                        <TouchableOpacity
-                            key={filterItem.key}
-                            style={[styles.filterTab, isActive && styles.filterTabActive]}
-                            onPress={() => setFilter(filterItem.key)}
-                        >
-                            <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                                {filterItem.label}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-
-
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#4CAF50" />
-                    <Text style={styles.loadingText}>Loading history...</Text>
-                </View>
-            ) : filteredHistory.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="document-text-outline" size={80} color="#ccc" />
-                    <Text style={styles.emptyTitle}>No History Found</Text>
-                    <Text style={styles.emptySubtext}>
-                        {filter === 'all'
-                            ? 'No moderation actions have been logged yet.'
-                            : `No ${filter} actions found.`}
-                    </Text>
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredHistory}
-                    renderItem={renderHistoryItem}
-                    keyExtractor={(item) => item.historyID?.toString() || Math.random().toString()}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                />
-            )}
-
-            <Modal
-                visible={showDetailModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowDetailModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <TouchableOpacity
-                        style={styles.modalBackground}
-                        onPress={() => setShowDetailModal(false)}
-                    />
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Action Details</Text>
-                            <TouchableOpacity onPress={() => setShowDetailModal(false)}>
-                                <Ionicons name="close" size={24} color="#333" />
+                {/* ✅ Updated: Date Picker Section */}
+                <View style={styles.filterSection}>
+                    <View style={styles.filterRow}>
+                        <View style={styles.filterInputGroup}>
+                            <Text style={styles.filterLabel}>From</Text>
+                            <TouchableOpacity 
+                                style={styles.dateButton}
+                                onPress={() => setShowFromPicker(true)}
+                            >
+                                <Ionicons name="calendar-outline" size={20} color="#666" />
+                                <Text style={styles.dateButtonText}>
+                                    {fromDate ? formatDateDisplay(fromDate) : 'Select Start Date'}
+                                </Text>
                             </TouchableOpacity>
+                            {showFromPicker && (
+                                <DateTimePicker
+                                    value={fromDate || new Date()}
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    onChange={onFromDateChange}
+                                    maximumDate={toDate || new Date()}
+                                />
+                            )}
                         </View>
 
-
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            {selectedEntry && (
-                                <View style={styles.modalBody}>
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Action:</Text>
-                                        <Text style={[styles.modalValue, { color: getActionColor(selectedEntry.action), fontWeight: 'bold' }]}>
-                                            {getActionLabel(selectedEntry.action)}
-                                        </Text>
-                                    </View>
-
-
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Category:</Text>
-                                        <Text style={styles.modalValue}>
-                                            {selectedEntry.action_category?.charAt(0).toUpperCase() + selectedEntry.action_category?.slice(1) || 'N/A'}
-                                        </Text>
-                                    </View>
-
-
-                                    <View style={styles.modalDivider} />
-
-
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Moderator:</Text>
-                                        <Text style={styles.modalValue}>
-                                            {selectedEntry.moderator?.name || selectedEntry.moderator_name || 'Unknown'}
-                                            {selectedEntry.moderator?.role ? ` (${selectedEntry.moderator.role})` : ''}
-                                        </Text>
-                                    </View>
-
-
-                                    {selectedEntry.target_user && (
-                                        <View style={styles.modalRow}>
-                                            <Text style={styles.modalLabel}>Target User:</Text>
-                                            <Text style={[styles.modalValue, { fontWeight: 'bold' }]}>
-                                                {selectedEntry.target_user.name}
-                                            </Text>
-                                            <Text style={[styles.modalValue, { color: '#999', fontSize: 12 }]}>
-                                                #{selectedEntry.target_user.userID}
-                                            </Text>
-                                        </View>
-                                    )}
-
-
-                                    {selectedEntry.target_product && (
-                                        <View style={styles.modalRow}>
-                                            <Text style={styles.modalLabel}>Target Product:</Text>
-                                            <Text style={[styles.modalValue, { fontWeight: 'bold' }]}>
-                                                {selectedEntry.target_product.name}
-                                            </Text>
-                                            <Text style={[styles.modalValue, { color: '#999', fontSize: 12 }]}>
-                                                #{selectedEntry.target_product.productID}
-                                            </Text>
-                                        </View>
-                                    )}
-
-
-                                    {selectedEntry.details && (
-                                        <>
-                                            <View style={styles.modalDivider} />
-                                            <Text style={styles.modalLabel}>Reason/Details:</Text>
-                                            <Text style={styles.modalDetails}>
-                                                {formatDetails(selectedEntry.details, selectedEntry.action)}
-                                            </Text>
-                                        </>
-                                    )}
-
-
-                                    <View style={styles.modalDivider} />
-
-
-                                    <View style={styles.modalRow}>
-                                        <Text style={styles.modalLabel}>Time:</Text>
-                                        <Text style={styles.modalValue}>
-                                            {formatDate(selectedEntry.created_at)}
-                                        </Text>
-                                    </View>
-
-
-                                    {selectedEntry.ip_address && (
-                                        <View style={styles.modalRow}>
-                                            <Text style={styles.modalLabel}>IP Address:</Text>
-                                            <Text style={styles.modalValue}>
-                                                {selectedEntry.ip_address}
-                                            </Text>
-                                        </View>
-                                    )}
-                                </View>
+                        <View style={styles.filterInputGroup}>
+                            <Text style={styles.filterLabel}>To</Text>
+                            <TouchableOpacity 
+                                style={styles.dateButton}
+                                onPress={() => setShowToPicker(true)}
+                            >
+                                <Ionicons name="calendar-outline" size={20} color="#666" />
+                                <Text style={styles.dateButtonText}>
+                                    {toDate ? formatDateDisplay(toDate) : 'Select End Date'}
+                                </Text>
+                            </TouchableOpacity>
+                            {showToPicker && (
+                                <DateTimePicker
+                                    value={toDate || new Date()}
+                                    mode="date"
+                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                    onChange={onToDateChange}
+                                    minimumDate={fromDate || undefined}
+                                    maximumDate={new Date()}
+                                />
                             )}
-                        </ScrollView>
+                        </View>
+                    </View>
 
-
+                    <View style={styles.filterActions}>
                         <TouchableOpacity
-                            style={styles.modalCloseButton}
-                            onPress={() => setShowDetailModal(false)}
+                            style={[styles.filterActionButton, styles.applyButton]}
+                            onPress={handleApplyFilters}
                         >
-                            <Text style={styles.modalCloseText}>Close</Text>
+                            <Ionicons name="search" size={16} color="#fff" />
+                            <Text style={styles.filterActionText}>Apply</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.filterActionButton, styles.clearButton]}
+                            onPress={handleClearFilters}
+                        >
+                            <Ionicons name="refresh" size={16} color="#666" />
+                            <Text style={[styles.filterActionText, { color: '#666' }]}>Clear</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-            </Modal>
-        </SafeAreaView>
+
+                <View style={styles.filterContainer}>
+                    {[
+                        { key: 'all', label: 'All' },
+                        { key: 'seller', label: 'Sellers' },
+                        { key: 'product', label: 'Products' },
+                        { key: 'user', label: 'Users' },
+                        { key: 'moderator', label: 'Moderators' },
+                    ].map((filterItem) => {
+                        const isActive = filter === filterItem.key;
+                        return (
+                            <TouchableOpacity
+                                key={filterItem.key}
+                                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                                onPress={() => setFilter(filterItem.key)}
+                            >
+                                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                                    {filterItem.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#4CAF50" />
+                        <Text style={styles.loadingText}>Loading history...</Text>
+                    </View>
+                ) : filteredHistory.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="document-text-outline" size={80} color="#ccc" />
+                        <Text style={styles.emptyTitle}>No History Found</Text>
+                        <Text style={styles.emptySubtext}>
+                            {filter === 'all'
+                                ? 'No moderation actions have been logged yet.'
+                                : `No ${filter} actions found.`}
+                        </Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredHistory}
+                        renderItem={renderHistoryItem}
+                        keyExtractor={(item) => item.historyID?.toString() || Math.random().toString()}
+                        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
+                    />
+                )}
+
+                {/* Detail Modal */}
+                <Modal
+                    visible={showDetailModal}
+                    transparent
+                    animationType="slide"
+                    onRequestClose={() => setShowDetailModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <TouchableOpacity
+                            style={styles.modalBackground}
+                            onPress={() => setShowDetailModal(false)}
+                        />
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Action Details</Text>
+                                <TouchableOpacity onPress={() => setShowDetailModal(false)}>
+                                    <Ionicons name="close" size={24} color="#333" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {selectedEntry && (
+                                    <View style={styles.modalBody}>
+                                        <View style={styles.modalRow}>
+                                            <Text style={styles.modalLabel}>Action:</Text>
+                                            <Text style={[styles.modalValue, { color: getActionColor(selectedEntry.action), fontWeight: 'bold' }]}>
+                                                {getActionLabel(selectedEntry.action)}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.modalRow}>
+                                            <Text style={styles.modalLabel}>Category:</Text>
+                                            <Text style={styles.modalValue}>
+                                                {selectedEntry.action_category?.charAt(0).toUpperCase() + selectedEntry.action_category?.slice(1) || 'N/A'}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.modalDivider} />
+
+                                        <View style={styles.modalRow}>
+                                            <Text style={styles.modalLabel}>Moderator:</Text>
+                                            <Text style={styles.modalValue}>
+                                                {selectedEntry.moderator?.name || selectedEntry.moderator_name || 'Unknown'}
+                                                {selectedEntry.moderator?.role ? ` (${selectedEntry.moderator.role})` : ''}
+                                            </Text>
+                                        </View>
+
+                                        {selectedEntry.target_user && (
+                                            <View style={styles.modalRow}>
+                                                <Text style={styles.modalLabel}>Target User:</Text>
+                                                <Text style={[styles.modalValue, { fontWeight: 'bold' }]}>
+                                                    {selectedEntry.target_user.name}
+                                                </Text>
+                                                <Text style={[styles.modalValue, { color: '#999', fontSize: 12 }]}>
+                                                    #{selectedEntry.target_user.userID}
+                                                </Text>
+                                            </View>
+                                        )}
+
+                                        {selectedEntry.target_product && (
+                                            <View style={styles.modalRow}>
+                                                <Text style={styles.modalLabel}>Target Product:</Text>
+                                                <Text style={[styles.modalValue, { fontWeight: 'bold' }]}>
+                                                    {selectedEntry.target_product.name}
+                                                </Text>
+                                                <Text style={[styles.modalValue, { color: '#999', fontSize: 12 }]}>
+                                                    #{selectedEntry.target_product.productID}
+                                                </Text>
+                                            </View>
+                                        )}
+
+                                        {selectedEntry.details && (
+                                            <>
+                                                <View style={styles.modalDivider} />
+                                                <Text style={styles.modalLabel}>Reason/Details:</Text>
+                                                <Text style={styles.modalDetails}>
+                                                    {formatDetails(selectedEntry.details, selectedEntry.action)}
+                                                </Text>
+                                            </>
+                                        )}
+
+                                        <View style={styles.modalDivider} />
+
+                                        <View style={styles.modalRow}>
+                                            <Text style={styles.modalLabel}>Time:</Text>
+                                            <Text style={styles.modalValue}>
+                                                {formatDate(selectedEntry.created_at)}
+                                            </Text>
+                                        </View>
+
+                                        {selectedEntry.ip_address && (
+                                            <View style={styles.modalRow}>
+                                                <Text style={styles.modalLabel}>IP Address:</Text>
+                                                <Text style={styles.modalValue}>
+                                                    {selectedEntry.ip_address}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                )}
+                            </ScrollView>
+
+                            <TouchableOpacity
+                                style={styles.modalCloseButton}
+                                onPress={() => setShowDetailModal(false)}
+                            >
+                                <Text style={styles.modalCloseText}>Close</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            </SafeAreaView>
+
+            {renderExportModal()}
+        </>
     );
 };
-
 
 const styles = StyleSheet.create({
     container: {
@@ -648,17 +812,24 @@ const styles = StyleSheet.create({
     filterLabel: {
         fontSize: 12,
         color: '#666',
-        marginBottom: 2,
+        marginBottom: 4,
+        fontWeight: '500',
     },
-    filterInput: {
+    dateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
         paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingVertical: 8,
+        backgroundColor: '#f8f9fa',
+        gap: 8,
+    },
+    dateButtonText: {
         fontSize: 13,
         color: '#333',
-        backgroundColor: '#f8f9fa',
+        flex: 1,
     },
     filterActions: {
         flexDirection: 'row',
@@ -812,11 +983,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
     },
-    detailsPreview: {
-        fontSize: 12,
-        color: '#9C27B0',
-        fontStyle: 'italic',
-    },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -865,10 +1031,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    // Modal Styles
     modalOverlay: {
         flex: 1,
-        justifyContent: 'flex-end',
         backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
     },
     modalBackground: {
         flex: 1,
@@ -877,8 +1044,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        maxHeight: '80%',
         paddingBottom: 20,
+        maxHeight: '80%',
     },
     modalHeader: {
         flexDirection: 'row',
@@ -897,27 +1064,71 @@ const styles = StyleSheet.create({
     modalBody: {
         padding: 20,
     },
+    modalLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 16,
+        backgroundColor: '#f8f9fa',
+    },
+    modalHint: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 8,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalCancel: {
+        backgroundColor: '#f0f0f0',
+    },
+    modalCancelText: {
+        color: '#666',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    modalSend: {
+        backgroundColor: '#6C5CE7',
+    },
+    modalSendText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    modalDivider: {
+        height: 1,
+        backgroundColor: '#e8e8e8',
+        marginVertical: 10,
+    },
     modalRow: {
         flexDirection: 'row',
         marginTop: 4,
         alignItems: 'center',
         flexWrap: 'wrap',
     },
-    modalLabel: {
-        fontSize: 14,
-        color: '#666',
-        width: 90,
-        fontWeight: '500',
-    },
     modalValue: {
         fontSize: 14,
         color: '#333',
         flex: 1,
-    },
-    modalDivider: {
-        height: 1,
-        backgroundColor: '#e8e8e8',
-        marginVertical: 10,
     },
     modalDetails: {
         fontSize: 14,
@@ -939,8 +1150,26 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    exportSummary: {
+        backgroundColor: '#f8f9fa',
+        borderRadius: 8,
+        padding: 12,
+        marginTop: 4,
+    },
+    exportSummaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 3,
+    },
+    exportSummaryLabel: {
+        fontSize: 13,
+        color: '#666',
+    },
+    exportSummaryValue: {
+        fontSize: 13,
+        color: '#333',
+        fontWeight: '500',
+    },
 });
 
-
 export default Admin_All_Moderation_History;
-

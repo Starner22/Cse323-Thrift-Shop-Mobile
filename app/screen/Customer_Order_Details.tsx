@@ -10,7 +10,9 @@ import {
     Image,
     ActivityIndicator,
     Alert,
-    RefreshControl
+    RefreshControl,
+    TextInput,
+    Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -46,10 +48,13 @@ interface OrderDetails {
 
 const Customer_Order_Details = ({ route, navigation }: any) => {
     const { orderID } = route.params || {};
-    const { isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const [order, setOrder] = useState<OrderDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [email, setEmail] = useState('');
 
     const imageBaseUrl = 'http://192.168.0.100/Thrift_Shop_api/';
 
@@ -81,6 +86,43 @@ const Customer_Order_Details = ({ route, navigation }: any) => {
         setRefreshing(true);
         await fetchOrderDetails();
         setRefreshing(false);
+    };
+
+    const handleExportPDF = () => {
+        // Show email modal first
+        setEmail(user?.email || '');
+        setShowEmailModal(true);
+    };
+
+    const handleSendPDF = async () => {
+        if (!order) return;
+        
+        if (!email || !email.includes('@')) {
+            Alert.alert('Error', 'Please enter a valid email address');
+            return;
+        }
+        
+        try {
+            setExporting(true);
+            setShowEmailModal(false);
+            
+            const response = await apiService.exportOrderPDFWithEmail(order.orderID, email);
+            
+            if (response && response.success) {
+                Alert.alert(
+                    'PDF Sent',
+                    `The invoice has been sent to:\n\n${email}\n\nPlease check your inbox.`,
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert('Error', response?.message || 'Failed to send PDF');
+            }
+        } catch (error: any) {
+            console.error('Export PDF error:', error);
+            Alert.alert('Error', error?.message || 'Failed to export PDF');
+        } finally {
+            setExporting(false);
+        }
     };
 
     const getStatusConfig = (status: string) => {
@@ -183,6 +225,66 @@ const Customer_Order_Details = ({ route, navigation }: any) => {
         );
     };
 
+    const renderEmailModal = () => (
+        <Modal
+            visible={showEmailModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowEmailModal(false)}
+        >
+            <View style={styles.modalOverlay}>
+                <TouchableOpacity 
+                    style={styles.modalBackground}
+                    onPress={() => setShowEmailModal(false)}
+                />
+                <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>Send PDF to Email</Text>
+                        <TouchableOpacity onPress={() => setShowEmailModal(false)}>
+                            <Ionicons name="close" size={24} color="#333" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.modalBody}>
+                        <Text style={styles.modalLabel}>Email Address</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="Enter your email"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <Text style={styles.modalHint}>
+                            The invoice will be sent as a PDF attachment.
+                        </Text>
+                    </View>
+                    
+                    <View style={styles.modalFooter}>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, styles.modalCancel]}
+                            onPress={() => setShowEmailModal(false)}
+                        >
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[styles.modalButton, styles.modalSend]}
+                            onPress={handleSendPDF}
+                            disabled={exporting}
+                        >
+                            {exporting ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.modalSendText}>Send PDF</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+
     if (loading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -218,173 +320,185 @@ const Customer_Order_Details = ({ route, navigation }: any) => {
     }
 
     const statusConfig = getStatusConfig(order.orderStatus);
-    const isCancelled = order.orderStatus === 'Cancelled';
 
     return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <>
+            <SafeAreaView style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-            {/* Top Bar */}
-            <View style={styles.topBar}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-                    <Ionicons name="arrow-back" size={28} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.storeTitle}>Order #{order.orderID}</Text>
-                <TouchableOpacity style={styles.iconButton} onPress={onRefresh}>
-                    <Ionicons name="refresh-outline" size={28} color="#333" />
-                </TouchableOpacity>
-            </View>
-
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                contentContainerStyle={styles.scrollContent}
-            >
-                {/* Status Banner */}
-                <View style={[styles.statusBanner, { backgroundColor: statusConfig.color + '10' }]}>
-                    <Ionicons name={statusConfig.icon as any} size={24} color={statusConfig.color} />
-                    <Text style={[styles.statusBannerText, { color: statusConfig.color }]}>
-                        {statusConfig.label}
-                    </Text>
-                    <Text style={styles.statusBannerDate}>
-                        {formatDate(order.orderDate)}
-                    </Text>
+                <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+                        <Ionicons name="arrow-back" size={28} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.storeTitle}>Order #{order.orderID}</Text>
+                    <TouchableOpacity style={styles.iconButton} onPress={onRefresh}>
+                        <Ionicons name="refresh-outline" size={28} color="#333" />
+                    </TouchableOpacity>
                 </View>
 
-                {/* Status Timeline */}
-                {renderStatusTimeline()}
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    contentContainerStyle={styles.scrollContent}
+                >
+                    <View style={[styles.statusBanner, { backgroundColor: statusConfig.color + '10' }]}>
+                        <Ionicons name={statusConfig.icon as any} size={24} color={statusConfig.color} />
+                        <Text style={[styles.statusBannerText, { color: statusConfig.color }]}>
+                            {statusConfig.label}
+                        </Text>
+                        <Text style={styles.statusBannerDate}>
+                            {formatDate(order.orderDate)}
+                        </Text>
+                    </View>
 
-                {/* Order Items */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📦 Order Items</Text>
-                    {order.items.map((item) => (
-                        <View key={item.orderItemID} style={styles.orderItem}>
-                            <View style={styles.orderItemImage}>
-                                {item.image_path ? (
-                                    <Image 
-                                        source={{ uri: `${imageBaseUrl}${item.image_path}` }} 
-                                        style={styles.orderItemImg}
-                                    />
-                                ) : (
-                                    <View style={[styles.orderItemImg, styles.imagePlaceholder]}>
-                                        <Ionicons name="image-outline" size={24} color="#ccc" />
-                                    </View>
-                                )}
-                            </View>
-                            <View style={styles.orderItemInfo}>
-                                <Text style={styles.orderItemName} numberOfLines={2}>
-                                    {item.product_name}
+                    <TouchableOpacity 
+                        style={[styles.exportButton, exporting && styles.exportButtonDisabled]}
+                        onPress={handleExportPDF}
+                        disabled={exporting}
+                    >
+                        {exporting ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <>
+                                <Ionicons name="mail-outline" size={20} color="#fff" />
+                                <Text style={styles.exportButtonText}>Send PDF to Email</Text>
+                                <Ionicons name="download-outline" size={18} color="#fff" />
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    {renderStatusTimeline()}
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>📦 Order Items</Text>
+                        {order.items.map((item) => (
+                            <View key={item.orderItemID} style={styles.orderItem}>
+                                <View style={styles.orderItemImage}>
+                                    {item.image_path ? (
+                                        <Image 
+                                            source={{ uri: `${imageBaseUrl}${item.image_path}` }} 
+                                            style={styles.orderItemImg}
+                                        />
+                                    ) : (
+                                        <View style={[styles.orderItemImg, styles.imagePlaceholder]}>
+                                            <Ionicons name="image-outline" size={24} color="#ccc" />
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.orderItemInfo}>
+                                    <Text style={styles.orderItemName} numberOfLines={2}>
+                                        {item.product_name}
+                                    </Text>
+                                    <Text style={styles.orderItemQty}>Qty: {item.quantity}</Text>
+                                </View>
+                                <Text style={styles.orderItemPrice}>
+                                    ${(item.price_at_purchase * item.quantity).toFixed(2)}
                                 </Text>
-                                <Text style={styles.orderItemQty}>Qty: {item.quantity}</Text>
                             </View>
-                            <Text style={styles.orderItemPrice}>
-                                ${(item.price_at_purchase * item.quantity).toFixed(2)}
+                        ))}
+
+                        <View style={styles.divider} />
+
+                        <View style={styles.totalRow}>
+                            <Text style={styles.totalLabel}>Subtotal</Text>
+                            <Text style={styles.totalValue}>${order.totalPrice.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.totalRow}>
+                            <Text style={styles.totalLabel}>Delivery Fee</Text>
+                            <Text style={styles.totalValue}>$5.00</Text>
+                        </View>
+                        <View style={[styles.totalRow, styles.grandTotalRow]}>
+                            <Text style={styles.grandTotalLabel}>Total</Text>
+                            <Text style={styles.grandTotalValue}>${(order.totalPrice + 5).toFixed(2)}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>📍 Shipping Details</Text>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Name:</Text>
+                            <Text style={styles.detailValue}>{order.shipping_name}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Address:</Text>
+                            <Text style={styles.detailValue}>{order.shipping_address}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>City:</Text>
+                            <Text style={styles.detailValue}>{order.shipping_city}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Postal Code:</Text>
+                            <Text style={styles.detailValue}>{order.shipping_postal_code}</Text>
+                        </View>
+                        {order.shipping_phone && (
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Phone:</Text>
+                                <Text style={styles.detailValue}>{order.shipping_phone}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>💳 Payment Details</Text>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Method:</Text>
+                            <Text style={styles.detailValue}>
+                                {order.payment_method === 'COD' ? 'Cash on Delivery' : order.payment_method}
                             </Text>
                         </View>
-                    ))}
-
-                    <View style={styles.divider} />
-
-                    <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>Subtotal</Text>
-                        <Text style={styles.totalValue}>${order.totalPrice.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>Delivery Fee</Text>
-                        <Text style={styles.totalValue}>$5.00</Text>
-                    </View>
-                    <View style={[styles.totalRow, styles.grandTotalRow]}>
-                        <Text style={styles.grandTotalLabel}>Total</Text>
-                        <Text style={styles.grandTotalValue}>${(order.totalPrice + 5).toFixed(2)}</Text>
-                    </View>
-                </View>
-
-                {/* Shipping Details */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📍 Shipping Details</Text>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Name:</Text>
-                        <Text style={styles.detailValue}>{order.shipping_name}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Address:</Text>
-                        <Text style={styles.detailValue}>{order.shipping_address}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>City:</Text>
-                        <Text style={styles.detailValue}>{order.shipping_city}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Postal Code:</Text>
-                        <Text style={styles.detailValue}>{order.shipping_postal_code}</Text>
-                    </View>
-                    {order.shipping_phone && (
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Phone:</Text>
-                            <Text style={styles.detailValue}>{order.shipping_phone}</Text>
+                            <Text style={styles.detailLabel}>Status:</Text>
+                            <Text style={[
+                                styles.detailValue,
+                                { color: order.payment_status === 'Paid' ? '#4CAF50' : '#FF9F43' }
+                            ]}>
+                                {order.payment_status || 'Pending'}
+                            </Text>
                         </View>
-                    )}
-                </View>
-
-                {/* Payment Details */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>💳 Payment Details</Text>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Method:</Text>
-                        <Text style={styles.detailValue}>
-                            {order.payment_method === 'COD' ? 'Cash on Delivery' : order.payment_method}
-                        </Text>
                     </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Status:</Text>
-                        <Text style={[
-                            styles.detailValue,
-                            { color: order.payment_status === 'Paid' ? '#4CAF50' : '#FF9F43' }
-                        ]}>
-                            {order.payment_status || 'Pending'}
-                        </Text>
-                    </View>
-                </View>
 
-                {/* Cancel Button (if pending) */}
-                {order.orderStatus === 'Pending' && (
-                    <TouchableOpacity 
-                        style={styles.cancelOrderButton}
-                        onPress={() => {
-                            Alert.alert(
-                                'Cancel Order',
-                                `Are you sure you want to cancel Order #${order.orderID}?`,
-                                [
-                                    { text: 'No', style: 'cancel' },
-                                    {
-                                        text: 'Yes, Cancel',
-                                        style: 'destructive',
-                                        onPress: async () => {
-                                            try {
-                                                const response = await apiService.cancelOrder(order.orderID);
-                                                if (response && response.success) {
-                                                    Alert.alert('Success', 'Order cancelled successfully');
-                                                    navigation.goBack();
-                                                } else {
-                                                    Alert.alert('Error', response?.message || 'Failed to cancel order');
+                    {order.orderStatus === 'Pending' && (
+                        <TouchableOpacity 
+                            style={styles.cancelOrderButton}
+                            onPress={() => {
+                                Alert.alert(
+                                    'Cancel Order',
+                                    `Are you sure you want to cancel Order #${order.orderID}?`,
+                                    [
+                                        { text: 'No', style: 'cancel' },
+                                        {
+                                            text: 'Yes, Cancel',
+                                            style: 'destructive',
+                                            onPress: async () => {
+                                                try {
+                                                    const response = await apiService.cancelOrder(order.orderID);
+                                                    if (response && response.success) {
+                                                        Alert.alert('Success', 'Order cancelled successfully');
+                                                        navigation.goBack();
+                                                    } else {
+                                                        Alert.alert('Error', response?.message || 'Failed to cancel order');
+                                                    }
+                                                } catch (error: any) {
+                                                    Alert.alert('Error', error.message || 'Failed to cancel order');
                                                 }
-                                            } catch (error: any) {
-                                                Alert.alert('Error', error.message || 'Failed to cancel order');
                                             }
                                         }
-                                    }
-                                ]
-                            );
-                        }}
-                    >
-                        <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
-                        <Text style={styles.cancelOrderText}>Cancel Order</Text>
-                    </TouchableOpacity>
-                )}
+                                    ]
+                                );
+                            }}
+                        >
+                            <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
+                            <Text style={styles.cancelOrderText}>Cancel Order</Text>
+                        </TouchableOpacity>
+                    )}
 
-                <View style={{ height: 40 }} />
-            </ScrollView>
-        </SafeAreaView>
+                    <View style={{ height: 40 }} />
+                </ScrollView>
+            </SafeAreaView>
+
+            {renderEmailModal()}
+        </>
     );
 };
 
@@ -429,7 +543,24 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         paddingTop: 12,
     },
-    // Status Banner
+    exportButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#6C5CE7',
+        paddingVertical: 12,
+        borderRadius: 10,
+        marginBottom: 12,
+        gap: 8,
+    },
+    exportButtonDisabled: {
+        opacity: 0.6,
+    },
+    exportButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
     statusBanner: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -447,7 +578,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
     },
-    // Timeline
     timelineContainer: {
         backgroundColor: '#fff',
         borderRadius: 10,
@@ -537,7 +667,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 4,
     },
-    // Section
     section: {
         backgroundColor: '#fff',
         borderRadius: 10,
@@ -552,7 +681,6 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 12,
     },
-    // Order Items
     orderItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -627,7 +755,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#4CAF50',
     },
-    // Details
     detailRow: {
         flexDirection: 'row',
         paddingVertical: 4,
@@ -642,7 +769,6 @@ const styles = StyleSheet.create({
         color: '#333',
         flex: 1,
     },
-    // Cancel Order
     cancelOrderButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -680,6 +806,88 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     goBackButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalBackground: {
+        flex: 1,
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    modalBody: {
+        padding: 20,
+    },
+    modalLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 16,
+        backgroundColor: '#f8f9fa',
+    },
+    modalHint: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 8,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalCancel: {
+        backgroundColor: '#f0f0f0',
+    },
+    modalCancelText: {
+        color: '#666',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    modalSend: {
+        backgroundColor: '#6C5CE7',
+    },
+    modalSendText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',

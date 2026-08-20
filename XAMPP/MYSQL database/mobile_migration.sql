@@ -118,14 +118,14 @@ CREATE TABLE `moderation_history` (
 --
 
 INSERT INTO `moderation_history` (`historyID`, `moderatorID`, `targetUserID`, `targetProductID`, `action`, `action_category`, `details`, `ip_address`, `created_at`) VALUES
-(1, 9, 8, NULL, 'suspend_seller', 'seller', 'Abb', '192.168.0.100', '2026-08-11 16:12:58'),
-(2, 9, 8, NULL, 'restore_seller', 'seller', NULL, '192.168.0.100', '2026-08-11 16:13:31'),
-(3, 9, NULL, 68, 'hide_product', 'product', NULL, '192.168.0.100', '2026-08-11 16:13:47'),
-(4, 9, NULL, 68, 'show_product', 'product', NULL, '192.168.0.100', '2026-08-11 16:14:00'),
-(5, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.100', '2026-08-11 16:14:11'),
-(6, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.100', '2026-08-11 16:14:12'),
-(7, 9, NULL, 68, 'hide_product', 'product', NULL, '192.168.0.100', '2026-08-11 16:14:41'),
-(8, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.100', '2026-08-11 16:15:00'),
+(1, 9, 8, NULL, 'suspend_seller', 'seller', 'Abb', '192.168.0.101', '2026-08-11 16:12:58'),
+(2, 9, 8, NULL, 'restore_seller', 'seller', NULL, '192.168.0.101', '2026-08-11 16:13:31'),
+(3, 9, NULL, 68, 'hide_product', 'product', NULL, '192.168.0.101', '2026-08-11 16:13:47'),
+(4, 9, NULL, 68, 'show_product', 'product', NULL, '192.168.0.101', '2026-08-11 16:14:00'),
+(5, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.101', '2026-08-11 16:14:11'),
+(6, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.101', '2026-08-11 16:14:12'),
+(7, 9, NULL, 68, 'hide_product', 'product', NULL, '192.168.0.101', '2026-08-11 16:14:41'),
+(8, 9, NULL, 68, 'edit_product', 'product', '{\"updated_fields\":[\"name\",\"description\",\"price\",\"quantity\",\"condition\"]}', '192.168.0.101', '2026-08-11 16:15:00'),
 (9, 9, NULL, 68, 'show_product', 'product', NULL, '172.20.142.47', '2026-08-13 05:12:58'),
 (10, 9, NULL, NULL, 'edit_user', 'user', '{\"updated_fields\":[\"name\",\"email\",\"phone\",\"role\"]}', '172.20.142.47', '2026-08-13 08:11:41'),
 (12, 9, 8, NULL, 'edit_seller', 'seller', '{\"updated_fields\":[\"business_name\",\"phone\"]}', '172.20.142.47', '2026-08-13 09:40:49'),
